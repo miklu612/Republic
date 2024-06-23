@@ -44,9 +44,9 @@ void test_0() {
     test.input = "console.log(\"Hello, World!\");";
 
     test.expected.count = 7;
-    lexer_token_array_push_const_string(&test.expected, "console", LexerTokenType_Keyword);
+    lexer_token_array_push_const_string(&test.expected, "console", LexerTokenType_Identifier);
     lexer_token_array_push_const_string(&test.expected, ".", LexerTokenType_Dot);
-    lexer_token_array_push_const_string(&test.expected, "log", LexerTokenType_Keyword);
+    lexer_token_array_push_const_string(&test.expected, "log", LexerTokenType_Identifier);
     lexer_token_array_push_const_string(&test.expected, "(", LexerTokenType_ParenStart);
     lexer_token_array_push_const_string(&test.expected, "Hello, World!", LexerTokenType_String);
     lexer_token_array_push_const_string(&test.expected, ")", LexerTokenType_ParenEnd);

@@ -85,7 +85,7 @@ bool is_identifier(char* token) {
 
 enum LexerTokenType identify_token_type(char* token) {
     if(is_identifier(token)) {
-	return LexerTokenType_Keyword;
+	return LexerTokenType_Identifier;
     }
     else if(strlen(token) == 1) {
 	if(token[0] == '.') {

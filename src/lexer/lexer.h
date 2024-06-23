@@ -11,6 +11,7 @@ enum LexerTokenType {
     LexerTokenType_ParenEnd,
     LexerTokenType_String,
     LexerTokenType_Semicolon,
+    LexerTokenType_Identifier,
 };
 
 // This is used to store individual lexer tokens that are
