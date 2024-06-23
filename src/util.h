@@ -1,0 +1,12 @@
+#ifndef util_h
+#define util_h
+
+#include<stdbool.h>
+
+#define TODO(message) assert(0 && "Todo: " message)
+#define PANIC(message) assert(0 && "Panic: " message)
+
+
+bool is_letter(char character);
+
+#endif
