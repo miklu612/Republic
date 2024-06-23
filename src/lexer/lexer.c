@@ -244,3 +244,42 @@ void lexer_token_array_print(LexerTokenArray* array) {
 	);
     }
 }
+
+bool __test_lexer_token_array_compare(LexerTokenArray* a1, LexerTokenArray* a2) {
+    if(a1->count != a2->count) {
+	fprintf(stderr, 
+	    "Test Mismatch Found:\n"
+	    "\tType: Token Count\n"
+	    "\tExpected: %ld\n"
+	    "\tGot: %ld\n",
+	    a1->count,
+	    a2->count
+	);
+	return false;
+    }
+    for(size_t i = 0 ; i < a1->count ; i++) {
+	if(a1->tokens[i].type != a2->tokens[i].type) {
+	    fprintf(stderr, 
+		"Test Mismatch Found:\n"
+		"\tType: Token Type\n"
+		"\tExpected: %d\n"
+		"\tGot: %d\n",
+		a1->tokens[i].type,
+		a2->tokens[i].type
+	    );
+	    return false;
+	}
+	if(strcmp(a1->tokens[i].raw, a2->tokens[i].raw) != 0) {
+	    fprintf(stderr, 
+		"Test Mismatch Found:\n"
+		"\tType: Raw Value\n"
+		"\tExpected: %s\n"
+		"\tGot: %s\n",
+		a1->tokens[i].raw,
+		a2->tokens[i].raw
+	    );
+	    return false;
+	}
+    }
+    return true;
+}
