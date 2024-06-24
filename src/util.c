@@ -1,5 +1,7 @@
 #include"util.h"
 
+#include<string.h>
+#include<stdlib.h>
 
 
 bool is_letter(char character) {
@@ -16,4 +18,10 @@ bool is_letter(char character) {
 
 bool is_digit(char character) {
     return character <= '9' && character >= '0';
+}
+
+char* clone_string(char* text_to_copy) {
+    char* output = malloc((strlen(text_to_copy)+1) * sizeof(char));
+    memcpy(output, text_to_copy, strlen(text_to_copy));
+    return output;
 }
