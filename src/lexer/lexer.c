@@ -25,7 +25,19 @@ enum LexerState {
     // This state will collect characters until it hits another quotation mark.
     LexerState_QuoteString,
 
+    // This state will collect a number. Basically the same syntax as a float,
+    // since js doesn't have integers and floats, but numbers
+    LexerState_Number,
+
 };
+
+
+// Returned when you want to ask for a character and that character's existence
+// is not known for certain
+typedef struct {
+    bool valid;
+    char character;
+} CharReqResult;
 
 typedef struct {
     size_t index;
@@ -83,9 +95,23 @@ bool is_identifier(char* token) {
     return true;
 }
 
+bool is_keyword(char* string) {
+    if(strcmp(string, "if") == 0) {
+	return true;
+    }
+    else {
+	return false;
+    }
+}
+
 enum LexerTokenType identify_token_type(char* token) {
     if(is_identifier(token)) {
-	return LexerTokenType_Identifier;
+	if(is_keyword(token)) {
+	    return LexerTokenType_Keyword;
+	}
+	else {
+	    return LexerTokenType_Identifier;
+	}
     }
     else if(strlen(token) == 1) {
 	if(token[0] == '.') {
@@ -97,8 +123,22 @@ enum LexerTokenType identify_token_type(char* token) {
 	else if(token[0] == ')') {
 	    return LexerTokenType_ParenEnd;
 	}
+	else if(token[0] == '{') {
+	    return LexerTokenType_CurlyBracketStart;
+	}
+	else if(token[0] == '}') {
+	    return LexerTokenType_CurlyBracketEnd;
+	}
 	else if(token[0] == ';') {
 	    return LexerTokenType_Semicolon;
+	}
+	else if(token[0] == '=') {
+	    return LexerTokenType_Equals;
+	}
+    }
+    else if(strlen(token) == 2) {
+	if(strcmp(token, "==") == 0) {
+	    return LexerTokenType_DoubleEquals;
 	}
     }
     PANIC("Couldn't identify token");
@@ -113,6 +153,7 @@ void lexer_token_set_raw(LexerToken* token, char* raw_token) {
     memcpy(token->raw, raw_token, strlen(raw_token) * sizeof(char));
 
 }
+
 
 LexerToken lexer_token_create(char* raw_token) {
 
@@ -134,6 +175,34 @@ LexerToken lexer_token_create_string(char* string) {
     lexer_token_set_raw(&token, string);
 
     return token;
+
+}
+
+LexerToken lexer_token_create_number(char* number) {
+
+    LexerToken token = { 0 };
+
+    token.type = LexerTokenType_NumberConstant;
+    lexer_token_set_raw(&token, number);
+
+    return token;
+
+}
+
+CharReqResult lexer_get_next_character(Lexer* lexer, char* code) {
+
+    if(lexer->index + 1 < strlen(code)) {
+	CharReqResult result = { 0 };
+	result.valid = true;
+	result.character = code[lexer->index + 1];
+	return result;
+    }
+    else {
+	CharReqResult result = { 0 };
+	result.valid = false;
+	result.character = '\0';
+	return result;
+    }
 
 }
 
@@ -175,6 +244,14 @@ LexerTokenArray lexer_lex_code(char* code) {
 		LexerToken token = lexer_token_create(")");
 		lexer_token_array_push(&token_array, &token);
 	    }
+	    else if(character == '{') {
+		LexerToken token = lexer_token_create("{");
+		lexer_token_array_push(&token_array, &token);
+	    }
+	    else if(character == '}') {
+		LexerToken token = lexer_token_create("}");
+		lexer_token_array_push(&token_array, &token);
+	    }
 	    else if(character == ';') {
 		LexerToken token = lexer_token_create(";");
 		lexer_token_array_push(&token_array, &token);
@@ -182,10 +259,30 @@ LexerTokenArray lexer_lex_code(char* code) {
 	    else if(character == '"') {
 		lexer.state = LexerState_QuoteString;
 	    }
+	    else if(character == ' ') {
+		continue;
+	    }
+	    else if(character == '=') {
+		CharReqResult result = lexer_get_next_character(&lexer, code);
+		if(result.valid) {
+		    if(result.character == '=') {
+			LexerToken token = lexer_token_create("==");
+			lexer_token_array_push(&token_array, &token);
+			lexer.index += 1;
+		    }
+		    else {
+			LexerToken token = lexer_token_create("=");
+			lexer_token_array_push(&token_array, &token);
+		    }
+		}
+	    }
+	    else if(is_digit(character)) {
+		lexer.state = LexerState_Number;
+		str_push_character(current_token, character);
+	    }
 	    else {
-		fprintf(stderr, "Failed to identify: %c\n", character);
+		fprintf(stderr, "Failed to identify: '%c'\n", character);
 		PANIC("");
-		// PANIC("Invalid Lexer State");
 	    }
 	}
 	else if(lexer.state == LexerState_Identifier) {
@@ -208,6 +305,26 @@ LexerTokenArray lexer_lex_code(char* code) {
 	    }
 	    else {
 		str_push_character(current_token, character);
+	    }
+	}
+	else if(lexer.state == LexerState_Number) {
+	    if(is_digit(character)) {
+		str_push_character(current_token, character);
+	    }
+	    else if(character == '.') {
+		for(size_t i = 0 ; i < strlen(current_token) ; i++) {
+		    if(current_token[i] == '.') {
+			PANIC("Multiple . characters in number");
+		    }
+		}
+		str_push_character(current_token, character);
+	    }
+	    else {
+		LexerToken token = lexer_token_create_number(current_token);
+		lexer_token_array_push(&token_array, &token);
+		current_token[0] = '\0';
+		lexer.state = LexerState_None;
+		lexer.index -= 1;
 	    }
 	}
 	else {
@@ -245,38 +362,51 @@ void lexer_token_array_print(LexerTokenArray* array) {
     }
 }
 
-bool __test_lexer_token_array_compare(LexerTokenArray* a1, LexerTokenArray* a2) {
-    if(a1->count != a2->count) {
+bool __test_lexer_token_array_compare(LexerTokenArray* expected, LexerTokenArray* got) {
+    if(expected->count != got->count) {
 	fprintf(stderr, 
 	    "Test Mismatch Found:\n"
 	    "\tType: Token Count\n"
 	    "\tExpected: %ld\n"
 	    "\tGot: %ld\n",
-	    a1->count,
-	    a2->count
+	    expected->count,
+	    got->count
 	);
+	fprintf(stderr, "Dumping values...\n");
+	fprintf(stderr, "Expected:\n");
+	for(size_t i = 0 ; i < expected->count ; i++) {
+	    fprintf(stderr, "\t%d - %s\n", expected->tokens[i].type, expected->tokens[i].raw);
+	}
+	fprintf(stderr, "Got:\n");
+	for(size_t i = 0 ; i < got->count ; i++) {
+	    fprintf(stderr, "\t%d - %s\n", got->tokens[i].type, got->tokens[i].raw);
+	}
 	return false;
     }
-    for(size_t i = 0 ; i < a1->count ; i++) {
-	if(a1->tokens[i].type != a2->tokens[i].type) {
+    for(size_t i = 0 ; i < expected->count ; i++) {
+	if(expected->tokens[i].type != got->tokens[i].type) {
 	    fprintf(stderr, 
 		"Test Mismatch Found:\n"
 		"\tType: Token Type\n"
 		"\tExpected: %d\n"
-		"\tGot: %d\n",
-		a1->tokens[i].type,
-		a2->tokens[i].type
+		"\tGot: %d\n"
+		"\tExpected(raw): %s\n"
+		"\tGot(raw): %s\n",
+		expected->tokens[i].type,
+		got->tokens[i].type,
+		expected->tokens[i].raw,
+		got->tokens[i].raw
 	    );
 	    return false;
 	}
-	if(strcmp(a1->tokens[i].raw, a2->tokens[i].raw) != 0) {
+	if(strcmp(expected->tokens[i].raw, got->tokens[i].raw) != 0) {
 	    fprintf(stderr, 
 		"Test Mismatch Found:\n"
 		"\tType: Raw Value\n"
 		"\tExpected: %s\n"
 		"\tGot: %s\n",
-		a1->tokens[i].raw,
-		a2->tokens[i].raw
+		expected->tokens[i].raw,
+		got->tokens[i].raw
 	    );
 	    return false;
 	}

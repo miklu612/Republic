@@ -8,5 +8,7 @@
 
 
 bool is_letter(char character);
+bool is_digit(char character);
+
 
 #endif

@@ -12,7 +12,13 @@ enum LexerTokenType {
     LexerTokenType_String,
     LexerTokenType_Semicolon,
     LexerTokenType_Identifier,
+    LexerTokenType_DoubleEquals,
+    LexerTokenType_Equals,
+    LexerTokenType_CurlyBracketStart,
+    LexerTokenType_CurlyBracketEnd,
+    LexerTokenType_NumberConstant,
 };
+
 
 // This is used to store individual lexer tokens that are
 // found in the given code.

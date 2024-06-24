@@ -13,3 +13,7 @@ bool is_letter(char character) {
 	return false;
     }
 }
+
+bool is_digit(char character) {
+    return character <= '9' && character >= '0';
+}
