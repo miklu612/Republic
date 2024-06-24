@@ -99,6 +99,9 @@ bool is_keyword(char* string) {
     if(strcmp(string, "if") == 0) {
 	return true;
     }
+    else if(strcmp(string, "const") == 0) {
+	return true;
+    }
     else {
 	return false;
     }
@@ -176,6 +179,13 @@ LexerToken lexer_token_create_string(char* string) {
 
     return token;
 
+}
+
+LexerToken lexer_token_create_custom(enum LexerTokenType type, char* raw) {
+    LexerToken token = { 0 };
+    token.type = type;
+    lexer_token_set_raw(&token, raw);
+    return token;
 }
 
 LexerToken lexer_token_create_number(char* number) {
@@ -258,6 +268,13 @@ LexerTokenArray lexer_lex_code(char* code) {
 	    }
 	    else if(character == '"') {
 		lexer.state = LexerState_QuoteString;
+	    }
+	    else if(character == '\n') {
+		LexerToken token = lexer_token_create_custom(LexerTokenType_Newline, "\n");
+		lexer_token_array_push(&token_array, &token);
+	    }
+	    else if(character == '\t') {
+		continue;
 	    }
 	    else if(character == ' ') {
 		continue;
@@ -375,11 +392,19 @@ bool __test_lexer_token_array_compare(LexerTokenArray* expected, LexerTokenArray
 	fprintf(stderr, "Dumping values...\n");
 	fprintf(stderr, "Expected:\n");
 	for(size_t i = 0 ; i < expected->count ; i++) {
-	    fprintf(stderr, "\t%d - %s\n", expected->tokens[i].type, expected->tokens[i].raw);
+	    fprintf(stderr, "\t%ld - %d - %s\n", 
+		i,
+		expected->tokens[i].type,
+		expected->tokens[i].raw
+	    );
 	}
 	fprintf(stderr, "Got:\n");
 	for(size_t i = 0 ; i < got->count ; i++) {
-	    fprintf(stderr, "\t%d - %s\n", got->tokens[i].type, got->tokens[i].raw);
+	    fprintf(stderr, "\t%ld - %d - %s\n",
+		i,
+		got->tokens[i].type,
+		got->tokens[i].raw
+	    );
 	}
 	return false;
     }

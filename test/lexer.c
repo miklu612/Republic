@@ -86,7 +86,48 @@ void test_1() {
     lexer_token_array_push_const_string(&test.expected, "}", LexerTokenType_CurlyBracketEnd);
 
     if(!run_test(&test)) {
-	fprintf(stderr, "Failed test: 0\n");
+	fprintf(stderr, "Failed test: 1\n");
+	exit(-1);
+    }
+
+    lexer_token_array_free(&test.expected);
+
+
+}
+
+void test_2() {
+
+    LexerTest test = { 0 };
+
+    test.input = "if(a == 1) {\n\tconsole.log(\"A is equal to 2\");\n\tconst c = 20;\n}";
+
+    test.expected.count = 7;
+    lexer_token_array_push_const_string(&test.expected, "if", LexerTokenType_Keyword);
+    lexer_token_array_push_const_string(&test.expected, "(", LexerTokenType_ParenStart);
+    lexer_token_array_push_const_string(&test.expected, "a", LexerTokenType_Identifier);
+    lexer_token_array_push_const_string(&test.expected, "==", LexerTokenType_DoubleEquals);
+    lexer_token_array_push_const_string(&test.expected, "1", LexerTokenType_NumberConstant);
+    lexer_token_array_push_const_string(&test.expected, ")", LexerTokenType_ParenEnd);
+    lexer_token_array_push_const_string(&test.expected, "{", LexerTokenType_CurlyBracketStart);
+    lexer_token_array_push_const_string(&test.expected, "\n", LexerTokenType_Newline);
+    lexer_token_array_push_const_string(&test.expected, "console", LexerTokenType_Identifier);
+    lexer_token_array_push_const_string(&test.expected, ".", LexerTokenType_Dot);
+    lexer_token_array_push_const_string(&test.expected, "log", LexerTokenType_Identifier);
+    lexer_token_array_push_const_string(&test.expected, "(", LexerTokenType_ParenStart);
+    lexer_token_array_push_const_string(&test.expected, "A is equal to 2", LexerTokenType_String);
+    lexer_token_array_push_const_string(&test.expected, ")", LexerTokenType_ParenEnd);
+    lexer_token_array_push_const_string(&test.expected, ";", LexerTokenType_Semicolon);
+    lexer_token_array_push_const_string(&test.expected, "\n", LexerTokenType_Newline);
+    lexer_token_array_push_const_string(&test.expected, "const", LexerTokenType_Keyword);
+    lexer_token_array_push_const_string(&test.expected, "c", LexerTokenType_Identifier);
+    lexer_token_array_push_const_string(&test.expected, "=", LexerTokenType_Equals);
+    lexer_token_array_push_const_string(&test.expected, "20", LexerTokenType_NumberConstant);
+    lexer_token_array_push_const_string(&test.expected, ";", LexerTokenType_Semicolon);
+    lexer_token_array_push_const_string(&test.expected, "\n", LexerTokenType_Newline);
+    lexer_token_array_push_const_string(&test.expected, "}", LexerTokenType_CurlyBracketEnd);
+
+    if(!run_test(&test)) {
+	fprintf(stderr, "Failed test: 2\n");
 	exit(-1);
     }
 
@@ -99,6 +140,7 @@ void test_1() {
 int main() {
     test_0();
     test_1();
+    test_2();
     return 0;
 }
 

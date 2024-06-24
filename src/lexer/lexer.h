@@ -17,6 +17,7 @@ enum LexerTokenType {
     LexerTokenType_CurlyBracketStart,
     LexerTokenType_CurlyBracketEnd,
     LexerTokenType_NumberConstant,
+    LexerTokenType_Newline,
 };
 
 
