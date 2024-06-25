@@ -156,6 +156,7 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
 	    break;
 	}
 	else {
+	    fprintf(stderr, "================\n");
 	    fprintf(stderr, "TODO: Add message here %d\n", __LINE__);
 	    exit(-1);
 	}
@@ -230,6 +231,9 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
 	    ShallowASTNode token = { 0 };
 	    token.type = ShallowASTNodeType_Semicolon;
 	    shallow_ast_node_array_push(&array, &token);
+	}
+	else if(lexer_token_array->tokens[i].type == LexerTokenType_Newline) {
+	    // TODO: Implement newlines
 	}
 	else {
 	    fprintf(stderr,
