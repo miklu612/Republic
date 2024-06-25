@@ -3,6 +3,7 @@
 
 #include<stddef.h>
 #include<stdio.h>
+#include<string.h>
 
 // This does not take ownership
 ShallowASTNode shallow_ast_node_create_string_constant(char* string) {
@@ -114,6 +115,9 @@ ShallowASTNode parser_shallow_get_access_object_member(LexerTokenArray* array, s
     ShallowASTNode shallow_ast_node = shallow_ast_node_create_access_object_member(
 	&array->tokens[index] 
     );
+    //fprintf(stderr, "%s\n", shallow_ast_node.data.AccessObjectMember.object_name);
+    fprintf(stderr, "%s\n", array->tokens[index].raw);
+    //shallow_ast_node.data.AccessObjectMember.object_name = clone_string(array->tokens[index].raw);
     for(size_t i = index+1 ; i+1 < array->count ; i+=2) {
 	if(array->tokens[i].type != LexerTokenType_Dot) {
 	    break;
@@ -246,4 +250,54 @@ void shallow_ast_node_array_free(ShallowASTNodeArray* array) {
 	shallow_ast_node_free(&array->nodes[i]);
     }
     free(array->nodes);
+}
+
+ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
+    if(node->type == ShallowASTNodeType_AccessObjectMember) {
+	ShallowASTNode* output = malloc(sizeof(ShallowASTNode));
+	output->type = ShallowASTNodeType_AccessObjectMember;
+
+	char** names = malloc(
+	    node->data.AccessObjectMember.path_data.count * sizeof(char*)
+	);
+
+	for(size_t i = 0 ; i < node->data.AccessObjectMember.path_data.count ; i++) {
+	    char* name = clone_string(node->data.AccessObjectMember.path_data.names[i]);
+	    names[i] = name;
+	}
+
+	char* object_name = node->data.AccessObjectMember.object_name;
+	fprintf(stderr, "%s\n", object_name);
+
+	output->data.AccessObjectMember.path_data.names = names;
+	output->data.AccessObjectMember.path_data.count = node->data.AccessObjectMember.path_data.count;
+	output->data.AccessObjectMember.object_name = clone_string(node->data.AccessObjectMember.object_name);
+
+	return output;
+
+    }
+    else if(node->type == ShallowASTNodeType_Call) {
+	ShallowASTNode* output = malloc(sizeof(ShallowASTNode));
+	memset(output, 0, sizeof(ShallowASTNode));
+	output->type = ShallowASTNodeType_Call;
+	for(size_t i = 0 ; i < node->data.Call.arguments.count ; i++) {
+	    // It just works
+	    ShallowASTNode* child = shallow_ast_node_deep_copy(&node->data.Call.arguments.nodes[i]);
+	    shallow_ast_node_call_add_argument(output, child);
+	    free(child);
+	    
+	}
+	return output;
+    }
+    else if(node->type == ShallowASTNodeType_StringConstant) {
+	ShallowASTNode* output = malloc(sizeof(ShallowASTNode));
+	memset(output, 0, sizeof(ShallowASTNode));
+	output->type = ShallowASTNodeType_StringConstant;
+	output->data.StringConstant.string = clone_string(node->data.StringConstant.string);
+	return output;
+    }
+    else {
+	fprintf(stderr, "deep copy is not implemented for: %d\n", node->type);
+	PANIC("");
+    }
 }

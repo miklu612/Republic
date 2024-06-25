@@ -22,6 +22,7 @@ bool is_digit(char character) {
 
 char* clone_string(char* text_to_copy) {
     char* output = malloc((strlen(text_to_copy)+1) * sizeof(char));
+    memset(output, 0, (strlen(text_to_copy)+1) * sizeof(char));
     memcpy(output, text_to_copy, strlen(text_to_copy));
     return output;
 }

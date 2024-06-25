@@ -66,5 +66,6 @@ void shallow_ast_node_print(ShallowASTNode* node);
 void shallow_ast_node_array_print(ShallowASTNodeArray* array);
 ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array);
 void shallow_ast_node_array_free(ShallowASTNodeArray* array);
+ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode*);
 
 #endif
