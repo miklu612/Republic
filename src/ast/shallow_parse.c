@@ -4,6 +4,7 @@
 #include<stddef.h>
 #include<stdio.h>
 #include<string.h>
+#include<assert.h>
 
 // This does not take ownership
 ShallowASTNode shallow_ast_node_create_string_constant(char* string) {
@@ -300,4 +301,38 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
 	fprintf(stderr, "deep copy is not implemented for: %d\n", node->type);
 	PANIC("");
     }
+}
+
+ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode* node, size_t index) {
+    assert(node->type == ShallowASTNodeType_Call);
+    assert(node->data.Call.arguments.count > index);
+    return &node->data.Call.arguments.nodes[index];
+}
+
+size_t shallow_ast_node_call_get_argument_count(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_Call);
+    return node->data.Call.arguments.count;
+}
+
+
+bool shallow_ast_node_access_object_member_compare_parent(ShallowASTNode* node, char* identifier) {
+    assert(node->type == ShallowASTNodeType_AccessObjectMember);
+    return strcmp(node->data.AccessObjectMember.object_name, identifier) == 0;
+}
+
+size_t shallow_ast_node_access_object_member_get_path_count(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_AccessObjectMember);
+    return node->data.AccessObjectMember.path_data.count;
+}
+
+
+char* shallow_ast_node_access_object_member_get_path_part(ShallowASTNode* node, size_t index) {
+    assert(node->type == ShallowASTNodeType_AccessObjectMember);
+    assert(node->data.AccessObjectMember.path_data.count > index);
+    return node->data.AccessObjectMember.path_data.names[index];
+}
+
+char* shallow_ast_node_string_constant_get_string(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_StringConstant);
+    return node->data.StringConstant.string;
 }

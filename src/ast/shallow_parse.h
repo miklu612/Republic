@@ -68,4 +68,13 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array);
 void shallow_ast_node_array_free(ShallowASTNodeArray* array);
 ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode*);
 
+ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode*, size_t index);
+size_t shallow_ast_node_call_get_argument_count(ShallowASTNode*);
+
+bool shallow_ast_node_access_object_member_compare_parent(ShallowASTNode*, char* identifier);
+size_t shallow_ast_node_access_object_member_get_path_count(ShallowASTNode*);
+char* shallow_ast_node_access_object_member_get_path_part(ShallowASTNode*, size_t index);
+
+char* shallow_ast_node_string_constant_get_string(ShallowASTNode*);
+
 #endif
