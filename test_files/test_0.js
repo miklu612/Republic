@@ -1,8 +1,2 @@
-
-console.log("Hello 1");
-
-console.log("Hello 2");
-
-console.log("Hello 3");
-
-
+// A simple hello world program in Javascript
+console.log("Hello, World!");

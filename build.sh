@@ -7,6 +7,7 @@ mkdir -p build
 flags="-Wall -Wextra -Werror -std=c99 -pedantic -fsanitize=address -g"
 
 gcc $flags -c -o build/lexer.o src/lexer/lexer.c
+gcc $flags -c -o build/formatter.o src/lexer/formatter.c
 gcc $flags -c -o build/util.o src/util.c
 gcc $flags -c -o build/ast.o src/ast/ast.c
 gcc $flags -c -o build/parser.o src/ast/parser.c

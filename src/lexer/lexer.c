@@ -1,4 +1,5 @@
 #include"lexer.h"
+#include"formatter.h"
 #include"../util.h"
 
 #include<stdlib.h>
@@ -220,6 +221,7 @@ LexerTokenArray lexer_lex_code(char* code) {
 
     (void) code;
 
+    char* new_code = formatter_format_code(code);
     LexerTokenArray token_array = { 0 };
 
     const size_t current_token_size = 1024;
@@ -230,9 +232,9 @@ LexerTokenArray lexer_lex_code(char* code) {
     Lexer lexer = { 0 };
     lexer.state = LexerState_None;
     lexer.index = 0;
-    lexer.code = code;
+    lexer.code = new_code;
 
-    for(lexer.index = 0 ; lexer.index < strlen(code) ; lexer.index++) {
+    for(lexer.index = 0 ; lexer.index < strlen(new_code) ; lexer.index++) {
 
 	const char character = lexer_get_character(&lexer);
 	(void) character;
@@ -280,7 +282,7 @@ LexerTokenArray lexer_lex_code(char* code) {
 		continue;
 	    }
 	    else if(character == '=') {
-		CharReqResult result = lexer_get_next_character(&lexer, code);
+		CharReqResult result = lexer_get_next_character(&lexer, new_code);
 		if(result.valid) {
 		    if(result.character == '=') {
 			LexerToken token = lexer_token_create("==");
@@ -351,6 +353,7 @@ LexerTokenArray lexer_lex_code(char* code) {
     }
 
     free(current_token);
+    free(new_code);
 
 
     return token_array;
