@@ -11,6 +11,9 @@ bool is_letter(char character) {
     else if(character >= 'A' && character <= 'Z') {
 	return true;
     }
+    else if(character == '_') {
+        return true;
+    }
     else {
 	return false;
     }

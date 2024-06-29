@@ -8,6 +8,11 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_Call,
     ShallowASTNodeType_StringConstant,
     ShallowASTNodeType_Semicolon,
+    ShallowASTNodeType_CreateConstVariable,
+};
+
+enum VariableType {
+    VariableType_Number
 };
 
 // These are "shallow" ast nodes. This means they are more simple than actual
@@ -43,6 +48,14 @@ typedef struct ShallowASTNode_struct {
 	    char* string;
 	} StringConstant;
 
+	struct {
+	    char* name;
+	    enum VariableType type;
+	    struct {
+		double number;
+	    } value;
+	} CreateConstVariable;
+
     } data;
 } ShallowASTNode;
 
@@ -76,5 +89,12 @@ size_t shallow_ast_node_access_object_member_get_path_count(ShallowASTNode*);
 char* shallow_ast_node_access_object_member_get_path_part(ShallowASTNode*, size_t index);
 
 char* shallow_ast_node_string_constant_get_string(ShallowASTNode*);
+
+char* shallow_ast_node_create_const_variable_get_name(ShallowASTNode*);
+
+ShallowASTNode shallow_ast_node_create_create_const_variable_number(char* name, double value);
+double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode*);
+
+ShallowASTNode* shallow_ast_node_create_empty();
 
 #endif

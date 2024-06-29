@@ -90,7 +90,9 @@ void lexer_token_array_push(LexerTokenArray* array, LexerToken* token) {
 bool is_identifier(char* token) {
     for(size_t i = 0 ; i < strlen(token) ; i++) {
 	if(is_letter(token[i]) == false) {
-	    return false;
+            if(!is_digit(token[i])) {
+	        return false;
+            }
 	}
     }
     return true;
@@ -108,14 +110,18 @@ bool is_keyword(char* string) {
     }
 }
 
+enum LexerTokenType get_identifier_type(char* string) {
+    if(strcmp(string, "const") == 0) {
+	return LexerTokenType_KeywordConst;
+    }
+    else {
+	return LexerTokenType_Identifier;
+    }
+}
+
 enum LexerTokenType identify_token_type(char* token) {
     if(is_identifier(token)) {
-	if(is_keyword(token)) {
-	    return LexerTokenType_Keyword;
-	}
-	else {
-	    return LexerTokenType_Identifier;
-	}
+	return get_identifier_type(token);
     }
     else if(strlen(token) == 1) {
 	if(token[0] == '.') {
@@ -145,6 +151,7 @@ enum LexerTokenType identify_token_type(char* token) {
 	    return LexerTokenType_DoubleEquals;
 	}
     }
+    fprintf(stderr, "Couldn't indentify token: '%s'\n", token);
     PANIC("Couldn't identify token");
     return LexerTokenType_Keyword;
 }
@@ -305,7 +312,7 @@ LexerTokenArray lexer_lex_code(char* code) {
 	    }
 	}
 	else if(lexer.state == LexerState_Identifier) {
-	    if(is_letter(character)) {
+	    if(is_letter(character) || is_digit(character)) {
 		str_push_character(current_token, character);
 	    }
 	    else {

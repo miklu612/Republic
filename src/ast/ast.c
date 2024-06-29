@@ -1,4 +1,5 @@
 #include"ast.h"
+#include"../util.h"
 
 #include<stdio.h>
 
@@ -15,6 +16,16 @@ void ast_node_free(ASTNode* node) {
     	   free(object);
         }
     }
+    else if(node->type == ASTNodeType_CreateConstVariable) {
+        if(node->data.CreateConstVariable.node != NULL) {
+            shallow_ast_node_free(node->data.CreateConstVariable.node);
+            free(node->data.CreateConstVariable.node);
+        }
+    }
+    else {
+        fprintf(stderr, "Free not implemented for %d\n", node->type);
+        PANIC("Free not implemented");
+    }
 }
 
 void ast_node_array_print(ASTNodeArray* array) {
@@ -28,3 +39,12 @@ void ast_node_array_print(ASTNodeArray* array) {
     }
 }
 
+char* ast_node_create_const_variable_get_name(ASTNode* node) {
+    assert(node->type == ASTNodeType_CreateConstVariable);
+    return shallow_ast_node_create_const_variable_get_name(node->data.CreateConstVariable.node);
+}
+
+double ast_node_create_const_variable_get_number(ASTNode* node) {
+    assert(node->type == ASTNodeType_CreateConstVariable);
+    return shallow_ast_node_create_const_variable_number_get_value(node->data.CreateConstVariable.node);
+}

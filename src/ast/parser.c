@@ -38,6 +38,14 @@ ASTNode ast_node_create_function_call(ShallowASTNode* object, ShallowASTNode* ca
     return node;
 }
 
+ASTNode ast_node_create_create_const_variable(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_CreateConstVariable);
+    ASTNode output = { 0 };
+    output.type = ASTNodeType_CreateConstVariable;
+    output.data.CreateConstVariable.node = shallow_ast_node_deep_copy(node);
+    return output;
+}
+
 void ast_node_array_push(ASTNodeArray* array, ASTNode* node) {
     if(array->nodes == NULL) {
 	array->nodes = malloc(sizeof(ASTNode));
@@ -72,6 +80,10 @@ ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) 
 		}
 	    }
 	}
+        else if(c_node->type == ShallowASTNodeType_CreateConstVariable) {
+            ASTNode node = ast_node_create_create_const_variable(&shallow_array.nodes[i]);
+            ast_node_array_push(&ast_node_array, &node);
+        }
 	else if(c_node->type == ShallowASTNodeType_Semicolon) {
 	    printf("Semicolons not supported.\n");
 	}

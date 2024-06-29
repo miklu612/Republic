@@ -13,6 +13,7 @@ gcc $flags -c -o build/ast.o src/ast/ast.c
 gcc $flags -c -o build/parser.o src/ast/parser.c
 gcc $flags -c -o build/shallow_parse.o src/ast/shallow_parse.c
 gcc $flags -c -o build/runtime.o src/runtime/runtime.c
+gcc $flags -c -o build/variable.o src/runtime/variable.c
 gcc $flags -o build/js build/*.o src/main.c
 
 
