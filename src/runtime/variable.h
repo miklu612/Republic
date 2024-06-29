@@ -33,5 +33,6 @@ void runtime_variable_free(RuntimeVariable*);
 void runtime_variable_array_push(RuntimeVariableArray*, RuntimeVariable*);
 void runtime_variable_array_free(RuntimeVariableArray*);
 void runtime_variable_array_log_variables(RuntimeVariableArray*);
+RuntimeVariable* runtime_variable_array_get(RuntimeVariableArray*, char* name);
 
 #endif

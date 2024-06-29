@@ -56,6 +56,9 @@ void shallow_ast_node_free(ShallowASTNode* node) {
     else if(node->type == ShallowASTNodeType_StringConstant) {
         free(node->data.StringConstant.string);
     }
+    else if(node->type == ShallowASTNodeType_AccessIdentifier) {
+        free(node->data.AccessIdentifier.name);
+    }
     else if(node->type == ShallowASTNodeType_Semicolon) {
         // Nothing needed to be done.
     }
@@ -165,6 +168,13 @@ ShallowASTNode shallow_ast_node_create_call() {
     return node;
 }
 
+ShallowASTNode shallow_ast_node_create_identifier_access(char* name) {
+    ShallowASTNode node = { 0 };
+    node.type = ShallowASTNodeType_AccessIdentifier;
+    node.data.AccessIdentifier.name = clone_string(name);
+    return node;
+}
+
 ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
     ShallowASTNode shallow_ast_node = shallow_ast_node_create_call();
     for(size_t i = *index+1 ; i < array->count ; i++) {
@@ -178,6 +188,12 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
             *index = i;
             break;
         }
+        else if(array->tokens[i].type == LexerTokenType_Identifier) {
+            ShallowASTNode argument = shallow_ast_node_create_identifier_access(
+                array->tokens[i].raw
+            );
+            shallow_ast_node_call_add_argument(&shallow_ast_node, &argument);
+        }
         else {
             fprintf(stderr, "================\n");
             fprintf(stderr, 
@@ -185,7 +201,7 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
                 "\tGot: %d\n",
                 array->tokens[i].type
             );
-            exit(-1);
+            PANIC("");
         }
     }
     return shallow_ast_node;
@@ -363,6 +379,12 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
         }
         return output;
     }
+    else if(node->type == ShallowASTNodeType_AccessIdentifier) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->data.AccessIdentifier.name = clone_string(node->data.AccessIdentifier.name);
+        output->type = ShallowASTNodeType_AccessIdentifier;
+        return output;
+    }
     else {
         fprintf(stderr, "deep copy is not implemented for: %d\n", node->type);
         PANIC("");
@@ -413,4 +435,10 @@ double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode* n
     assert(node->type == ShallowASTNodeType_CreateConstVariable);
     assert(node->data.CreateConstVariable.type == VariableType_Number);
     return node->data.CreateConstVariable.value.number;
+}
+
+char* shallow_ast_node_access_identifier_get_name(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_AccessIdentifier);
+    assert(node->data.AccessIdentifier.name != NULL);
+    return node->data.AccessIdentifier.name;
 }

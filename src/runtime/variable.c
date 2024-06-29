@@ -2,6 +2,7 @@
 #include"../util.h"
 
 #include<stdio.h>
+#include<string.h>
 
 void runtime_variable_set_name(RuntimeVariable* variable, char* name) {
     variable->name = clone_string(name);
@@ -74,3 +75,11 @@ void runtime_variable_array_log_variables(RuntimeVariableArray* array) {
     }
 }
 
+RuntimeVariable* runtime_variable_array_get(RuntimeVariableArray* array, char* name) {
+    for(size_t i = 0 ; i < array->count ; i++)  {
+        if(strcmp(array->variables[i].name, name) == 0) {
+            return &array->variables[i];
+        }
+    }
+    return NULL;
+}

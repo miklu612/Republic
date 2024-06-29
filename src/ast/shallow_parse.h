@@ -5,6 +5,7 @@
 
 enum ShallowASTNodeType {
     ShallowASTNodeType_AccessObjectMember,
+    ShallowASTNodeType_AccessIdentifier,
     ShallowASTNodeType_Call,
     ShallowASTNodeType_StringConstant,
     ShallowASTNodeType_Semicolon,
@@ -56,6 +57,10 @@ typedef struct ShallowASTNode_struct {
 	    } value;
 	} CreateConstVariable;
 
+	struct {
+	    char* name;
+	} AccessIdentifier;
+
     } data;
 } ShallowASTNode;
 
@@ -96,5 +101,8 @@ ShallowASTNode shallow_ast_node_create_create_const_variable_number(char* name, 
 double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode*);
 
 ShallowASTNode* shallow_ast_node_create_empty();
+
+ShallowASTNode shallow_ast_node_create_identifier_access(char* name);
+char* shallow_ast_node_access_identifier_get_name(ShallowASTNode*);
 
 #endif
