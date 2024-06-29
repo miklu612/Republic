@@ -6,6 +6,28 @@
 #include<string.h>
 #include<assert.h>
 
+// Used to quickly turn known lexer tokens into shallow tokens
+ShallowASTNode shallow_ast_node_create_from_lexer_token(LexerToken* token) {
+
+    if(token->type == LexerTokenType_Identifier) {
+        ShallowASTNode output = shallow_ast_node_create_access_identifier(token->raw);
+        return output;
+    }
+
+    else if(token->type == LexerTokenType_NumberConstant) {
+        ShallowASTNode output = { 0 };
+        output.type = ShallowASTNodeType_NumberConstant;
+        output.data.NumberConstant.number = strtod(token->raw, NULL);
+        return output;
+    }
+
+    else {
+        fprintf(stderr, "shallow_ast_node_create_from_lexer is not implemented for this\n");
+        PANIC("");
+    }
+    return (ShallowASTNode) { 0 };
+}
+
 ShallowASTNode* shallow_ast_node_create_empty() {
     ShallowASTNode* node = calloc(1, sizeof(ShallowASTNode));
     assert(node != NULL);
@@ -44,13 +66,13 @@ void shallow_ast_node_free(ShallowASTNode* node) {
         }
     }
     else if(node->type == ShallowASTNodeType_Call) {
-        ShallowASTNode** nodes = &node->data.Call.arguments.nodes;
-        size_t* count = &node->data.Call.arguments.count;
-        if(*nodes != NULL) {
-            for(size_t i = 0 ; i < *count ; i++) {
-                shallow_ast_node_free(&(*nodes)[i]);
+        ShallowASTNode* nodes = node->data.Call.arguments.nodes;
+        size_t count = node->data.Call.arguments.count;
+        if(nodes != NULL) {
+            for(size_t i = 0 ; i < count ; i++) {
+                shallow_ast_node_free(&nodes[i]);
             }
-            free(*nodes);
+            free(nodes);
         }
     }
     else if(node->type == ShallowASTNodeType_StringConstant) {
@@ -59,7 +81,16 @@ void shallow_ast_node_free(ShallowASTNode* node) {
     else if(node->type == ShallowASTNodeType_AccessIdentifier) {
         free(node->data.AccessIdentifier.name);
     }
+    else if(node->type == ShallowASTNodeType_ConditionalCheck) {
+        shallow_ast_node_free(node->data.ConditionalCheck.left);
+        shallow_ast_node_free(node->data.ConditionalCheck.right);
+        free(node->data.ConditionalCheck.left);
+        free(node->data.ConditionalCheck.right);
+    }
     else if(node->type == ShallowASTNodeType_Semicolon) {
+        // Nothing needed to be done.
+    }
+    else if(node->type == ShallowASTNodeType_NumberConstant) {
         // Nothing needed to be done.
     }
     else if(node->type == ShallowASTNodeType_CreateConstVariable) {
@@ -79,8 +110,6 @@ void shallow_ast_node_free(ShallowASTNode* node) {
 
 // Takes ownership of `node`
 void shallow_ast_node_array_push(ShallowASTNodeArray* array, ShallowASTNode* node) {
-    (void) array;
-    (void) node;
     if(array->nodes == NULL) {
         array->nodes = malloc(sizeof(ShallowASTNode));
         array->count = 0;
@@ -168,10 +197,19 @@ ShallowASTNode shallow_ast_node_create_call() {
     return node;
 }
 
-ShallowASTNode shallow_ast_node_create_identifier_access(char* name) {
+ShallowASTNode shallow_ast_node_create_access_identifier(char* name) {
     ShallowASTNode node = { 0 };
     node.type = ShallowASTNodeType_AccessIdentifier;
     node.data.AccessIdentifier.name = clone_string(name);
+    return node;
+}
+
+ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, ShallowASTNode* right, enum ConditionalCheckType type) {
+    ShallowASTNode node = { 0 };
+    node.type = ShallowASTNodeType_ConditionalCheck;
+    node.data.ConditionalCheck.type = type;
+    node.data.ConditionalCheck.left = shallow_ast_node_deep_copy(left);
+    node.data.ConditionalCheck.right = shallow_ast_node_deep_copy(right);
     return node;
 }
 
@@ -189,10 +227,32 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
             break;
         }
         else if(array->tokens[i].type == LexerTokenType_Identifier) {
-            ShallowASTNode argument = shallow_ast_node_create_identifier_access(
-                array->tokens[i].raw
-            );
-            shallow_ast_node_call_add_argument(&shallow_ast_node, &argument);
+            // TODO: Fix potential buffer overflow. Thanks!
+            if(array->tokens[i+1].type == LexerTokenType_DoubleEquals) {
+                if(array->tokens[i+2].type == LexerTokenType_NumberConstant) {
+                    ShallowASTNode left = shallow_ast_node_create_from_lexer_token(&array->tokens[i]);
+                    ShallowASTNode right = shallow_ast_node_create_from_lexer_token(&array->tokens[i+2]);
+                    ShallowASTNode argument = shallow_ast_node_conditional_check_create(
+                            &left,
+                            &right,
+                            ConditionalCheckType_Equals
+                    );
+                    shallow_ast_node_call_add_argument(&shallow_ast_node, &argument);
+                    shallow_ast_node_free(&left);
+                    shallow_ast_node_free(&right);
+                    i += 2;
+                }
+                else {
+                    fprintf(stderr, "Conditional check is not implemented for this\n");
+                    PANIC("");
+                }
+            }
+            else {
+                ShallowASTNode argument = shallow_ast_node_create_access_identifier(
+                    array->tokens[i].raw
+                );
+                shallow_ast_node_call_add_argument(&shallow_ast_node, &argument);
+            }
         }
         else {
             fprintf(stderr, "================\n");
@@ -313,6 +373,7 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
     }
 
     return array;
+
 }
 
 void shallow_ast_node_array_free(ShallowASTNodeArray* array) {
@@ -385,6 +446,25 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
         output->type = ShallowASTNodeType_AccessIdentifier;
         return output;
     }
+    else if(node->type == ShallowASTNodeType_NumberConstant) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = node->type;
+        output->data.NumberConstant.number = node->data.NumberConstant.number;
+        return output;
+    }
+    else if(node->type == ShallowASTNodeType_ConditionalCheck) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = ShallowASTNodeType_ConditionalCheck;
+        fprintf(stderr,
+            "%d\n%d\n",
+            node->data.ConditionalCheck.left->type,
+            node->data.ConditionalCheck.right->type
+        );
+        output->data.ConditionalCheck.left = shallow_ast_node_deep_copy(node->data.ConditionalCheck.left);
+        output->data.ConditionalCheck.right = shallow_ast_node_deep_copy(node->data.ConditionalCheck.right);
+        output->data.ConditionalCheck.type = node->data.ConditionalCheck.type;
+        return output;
+    }
     else {
         fprintf(stderr, "deep copy is not implemented for: %d\n", node->type);
         PANIC("");
@@ -442,3 +522,9 @@ char* shallow_ast_node_access_identifier_get_name(ShallowASTNode* node) {
     assert(node->data.AccessIdentifier.name != NULL);
     return node->data.AccessIdentifier.name;
 }
+
+double shallow_ast_node_number_constant_get_value(ShallowASTNode* node) {
+    assert(node->type == ShallowASTNodeType_NumberConstant);
+    return node->data.NumberConstant.number;
+}
+

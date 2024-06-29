@@ -19,25 +19,52 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
             assert(shallow_ast_node_access_object_member_get_path_count(object) == 1);
             assert(shallow_ast_node_call_get_argument_count(call) == 1);
             const char* path = shallow_ast_node_access_object_member_get_path_part(object, 0);
-            assert(strcmp(path, "log") == 0);
-            ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
-            if(arg->type == ShallowASTNodeType_StringConstant) {
-                const char* string = shallow_ast_node_string_constant_get_string(arg);
-                printf("%s\n", string);
-            }
-            else if(arg->type == ShallowASTNodeType_AccessIdentifier) {
-                char* name = shallow_ast_node_access_identifier_get_name(arg);
-                RuntimeVariable* variable = runtime_get_variable(runtime, name);
-                if(variable->type == VariableType_Number) {
-                    printf("%f\n", variable->value.number);
+            if(strcmp(path, "log") == 0) {
+                ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
+                if(arg->type == ShallowASTNodeType_StringConstant) {
+                    const char* string = shallow_ast_node_string_constant_get_string(arg);
+                    printf("%s\n", string);
+                }
+                else if(arg->type == ShallowASTNodeType_AccessIdentifier) {
+                    char* name = shallow_ast_node_access_identifier_get_name(arg);
+                    RuntimeVariable* variable = runtime_get_variable(runtime, name);
+                    if(variable->type == VariableType_Number) {
+                        printf("%f\n", variable->value.number);
+                    }
+                    else {
+                        fprintf(stderr, "Logging is not implemented for variable type: %d\n", variable->type);
+                        PANIC("");
+                    }
                 }
                 else {
-                    fprintf(stderr, "Logging is not implemented for variable type: %d\n", variable->type);
+                    fprintf(stderr, "Log not implemented for: (ShallowASTNodeType) %d\n", arg->type);
                     PANIC("");
                 }
             }
+            else if(strcmp(path, "assert") == 0) {
+                ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
+
+                // First round of validations
+                assert(arg->type == ShallowASTNodeType_ConditionalCheck);
+                assert(arg->data.ConditionalCheck.type == ConditionalCheckType_Equals);
+                assert(arg->data.ConditionalCheck.left->type == ShallowASTNodeType_AccessIdentifier);
+                assert(arg->data.ConditionalCheck.right->type == ShallowASTNodeType_NumberConstant);
+
+                char* name = arg->data.ConditionalCheck.left->data.AccessIdentifier.name;
+                const RuntimeVariable* variable = runtime_get_variable(runtime, name);
+
+                ShallowASTNode* node = arg->data.ConditionalCheck.right;
+                const double value = shallow_ast_node_number_constant_get_value(node);
+
+                assert(variable->type == VariableType_Number);
+                if(variable->value.number != value) {
+                    fprintf(stderr, "Assertion failed.\n");
+                    exit(-1);
+                }
+
+            }
             else {
-                fprintf(stderr, "Log not implemented for: (ShallowASTNodeType) %d\n", arg->type);
+                fprintf(stderr, "Method '%s' is not implemented for object 'console'\n", path);
                 PANIC("");
             }
         }

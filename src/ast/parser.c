@@ -30,8 +30,6 @@ ASTNode ast_node_create_function_call(ShallowASTNode* object, ShallowASTNode* ca
     ASTNode node = { 0 };
     node.type = ASTNodeType_FunctionCall;
 
-    
-
     node.data.FunctionCall.object = shallow_ast_node_deep_copy(object);
     node.data.FunctionCall.call = shallow_ast_node_deep_copy(call);
 

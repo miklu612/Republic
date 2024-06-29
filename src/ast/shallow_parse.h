@@ -10,6 +10,12 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_StringConstant,
     ShallowASTNodeType_Semicolon,
     ShallowASTNodeType_CreateConstVariable,
+    ShallowASTNodeType_ConditionalCheck,
+    ShallowASTNodeType_NumberConstant,
+};
+
+enum ConditionalCheckType {
+    ConditionalCheckType_Equals
 };
 
 enum VariableType {
@@ -19,47 +25,57 @@ enum VariableType {
 // These are "shallow" ast nodes. This means they are more simple than actual
 // ast nodes, but this is for a reason. First we want to create a general
 // overview of the code and then try to make sense of it.
-typedef struct ShallowASTNode_struct {
+typedef struct ShallowASTNode {
     enum ShallowASTNodeType type;
     union {
-	
-	// object_name - The parent object that you are trying to get the data
-	//               from.
-	//
-	// path_data   - The path that you are trying to access. 
-	//
-	// Example:
-	//   {object_name}.{path_data[0]}.{path_data[1]}
-	struct {
-	    char* object_name;
-	    struct {
-		char** names;
-		size_t count;
-	    } path_data;
-	} AccessObjectMember;
+    
+        // object_name - The parent object that you are trying to get the data
+        //               from.
+        //
+        // path_data   - The path that you are trying to access. 
+        //
+        // Example:
+        //   {object_name}.{path_data[0]}.{path_data[1]}
+        struct {
+            char* object_name;
+            struct {
+            char** names;
+            size_t count;
+            } path_data;
+        } AccessObjectMember;
 
-	struct {
-	    struct {
-		struct ShallowASTNode_struct* nodes;
-		size_t count;
-	    } arguments;
-	} Call;
+        struct {
+            struct {
+                struct ShallowASTNode* nodes;
+                size_t count;
+            } arguments;
+        } Call;
 
-	struct {
-	    char* string;
-	} StringConstant;
+        struct {
+            char* string;
+        } StringConstant;
 
-	struct {
-	    char* name;
-	    enum VariableType type;
-	    struct {
-		double number;
-	    } value;
-	} CreateConstVariable;
+        struct {
+            char* name;
+            enum VariableType type;
+            struct {
+                double number;
+            } value;
+        } CreateConstVariable;
 
-	struct {
-	    char* name;
-	} AccessIdentifier;
+        struct {
+            char* name;
+        } AccessIdentifier;
+
+        struct {
+            struct ShallowASTNode* left;
+            struct ShallowASTNode* right;
+            enum ConditionalCheckType type;
+        } ConditionalCheck;
+
+        struct {
+            double number;
+        } NumberConstant;
 
     } data;
 } ShallowASTNode;
@@ -102,7 +118,11 @@ double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode*);
 
 ShallowASTNode* shallow_ast_node_create_empty();
 
-ShallowASTNode shallow_ast_node_create_identifier_access(char* name);
+ShallowASTNode shallow_ast_node_create_access_identifier(char* name);
 char* shallow_ast_node_access_identifier_get_name(ShallowASTNode*);
+
+ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, ShallowASTNode* right, enum ConditionalCheckType type);
+
+double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
 
 #endif
