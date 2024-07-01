@@ -12,15 +12,20 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_CreateConstVariable,
     ShallowASTNodeType_ConditionalCheck,
     ShallowASTNodeType_NumberConstant,
+    ShallowASTNodeType_Addition,
 };
 
 enum ConditionalCheckType {
     ConditionalCheckType_Equals
 };
 
-enum VariableType {
-    VariableType_Number
+enum ExpressionType {
+    ExpressionType_Number,
+    ExpressionType_Identifier,
+    ExpressionType_Multitoken,
 };
+
+struct ShallowASTNodeArray;
 
 // These are "shallow" ast nodes. This means they are more simple than actual
 // ast nodes, but this is for a reason. First we want to create a general
@@ -39,8 +44,8 @@ typedef struct ShallowASTNode {
         struct {
             char* object_name;
             struct {
-            char** names;
-            size_t count;
+                char** names;
+                size_t count;
             } path_data;
         } AccessObjectMember;
 
@@ -57,9 +62,10 @@ typedef struct ShallowASTNode {
 
         struct {
             char* name;
-            enum VariableType type;
-            struct {
+            enum ExpressionType type;
+            union {
                 double number;
+                struct ShallowASTNodeArray* multitoken;
             } value;
         } CreateConstVariable;
 
@@ -77,10 +83,30 @@ typedef struct ShallowASTNode {
             double number;
         } NumberConstant;
 
+        struct {
+
+            struct {
+                enum ExpressionType type;
+                union {
+                    char* identifier;
+                    double number;
+                } value;
+            } left;
+
+            struct {
+                enum ExpressionType type;
+                union {
+                    char* identifier;
+                    double number;
+                } value;
+            } right;
+
+        } Addition;
+
     } data;
 } ShallowASTNode;
 
-typedef struct {
+typedef struct ShallowASTNodeArray {
     ShallowASTNode* nodes;
     size_t count;
 } ShallowASTNodeArray;
@@ -114,7 +140,11 @@ char* shallow_ast_node_string_constant_get_string(ShallowASTNode*);
 char* shallow_ast_node_create_const_variable_get_name(ShallowASTNode*);
 
 ShallowASTNode shallow_ast_node_create_create_const_variable_number(char* name, double value);
+ShallowASTNode shallow_ast_node_create_create_const_variable_multitoken(char* name);
 double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode*);
+void shallow_ast_create_const_variable_multitoken_push(ShallowASTNode*, ShallowASTNode*);
+enum ExpressionType shallow_ast_node_create_const_variable_get_expression_type(ShallowASTNode*);
+ShallowASTNodeArray* shallow_ast_node_create_const_variable_multitoken_get_expression(ShallowASTNode*);
 
 ShallowASTNode* shallow_ast_node_create_empty();
 
@@ -124,5 +154,9 @@ char* shallow_ast_node_access_identifier_get_name(ShallowASTNode*);
 ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, ShallowASTNode* right, enum ConditionalCheckType type);
 
 double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
+
+ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right);
+
+ShallowASTNodeArray shallow_ast_node_array_clone(ShallowASTNodeArray*);
 
 #endif

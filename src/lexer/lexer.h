@@ -19,6 +19,7 @@ enum LexerTokenType {
     LexerTokenType_NumberConstant,
     LexerTokenType_Newline,
     LexerTokenType_KeywordConst,
+    LexerTokenType_Plus,
 };
 
 
@@ -46,10 +47,13 @@ void lexer_token_array_push(LexerTokenArray*, LexerToken*);
 void lexer_token_array_free(LexerTokenArray*);
 void lexer_token_array_print(LexerTokenArray*);
 bool __test_lexer_token_array_compare(LexerTokenArray*, LexerTokenArray*);
+LexerTokenArray lexer_token_array_clone(LexerTokenArray*);
 
 // This function will create a token based on the string that is given to it.
 // This will not take ownership of the string.
 LexerToken lexer_token_create(char* token);
+LexerToken lexer_token_clone(LexerToken*);
 LexerToken test_lexer_token_create_string(char* string);
+
 
 #endif

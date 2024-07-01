@@ -21,6 +21,10 @@ void ast_node_free(ASTNode* node) {
             shallow_ast_node_free(node->data.CreateConstVariable.node);
             free(node->data.CreateConstVariable.node);
         }
+        else {
+            fprintf(stderr, "Todo: Add message\n");
+            PANIC("");
+        }
     }
     else {
         fprintf(stderr, "Free not implemented for %d\n", node->type);
@@ -47,4 +51,11 @@ char* ast_node_create_const_variable_get_name(ASTNode* node) {
 double ast_node_create_const_variable_get_number(ASTNode* node) {
     assert(node->type == ASTNodeType_CreateConstVariable);
     return shallow_ast_node_create_const_variable_number_get_value(node->data.CreateConstVariable.node);
+}
+
+enum ExpressionType ast_node_create_const_variable_get_expression_type(ASTNode* node) {
+    assert(node->type == ASTNodeType_CreateConstVariable);
+    return shallow_ast_node_create_const_variable_get_expression_type(
+        node->data.CreateConstVariable.node
+    );
 }

@@ -12,7 +12,6 @@ RuntimeVariable* runtime_get_variable(Runtime* runtime, char* name) {
 }
 
 void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNode* object) {
-    (void) runtime;
     assert(call->type == ShallowASTNodeType_Call);
     if(object->type == ShallowASTNodeType_AccessObjectMember) {
         if(shallow_ast_node_access_object_member_compare_parent(object, "console")) {
@@ -52,6 +51,7 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
 
                 char* name = arg->data.ConditionalCheck.left->data.AccessIdentifier.name;
                 const RuntimeVariable* variable = runtime_get_variable(runtime, name);
+                assert(variable != NULL);
 
                 ShallowASTNode* node = arg->data.ConditionalCheck.right;
                 const double value = shallow_ast_node_number_constant_get_value(node);
@@ -85,6 +85,7 @@ void runtime_create_const_variable(Runtime* runtime, ShallowASTNode* node) {
     (void) runtime;
 }
 
+
 void runtime_start(ASTNodeArray* array) {
     Runtime runtime = { 0 };
     
@@ -98,9 +99,29 @@ void runtime_start(ASTNodeArray* array) {
         }
         else if(current->type == ASTNodeType_CreateConstVariable) {
             char* name = ast_node_create_const_variable_get_name(current);
-            const double value = ast_node_create_const_variable_get_number(current);
-            RuntimeVariable runtime_variable = runtime_variable_create_number(name, value);
-            runtime_variable_array_push(&runtime.variables, &runtime_variable);
+            enum ExpressionType type = ast_node_create_const_variable_get_expression_type(
+                current
+            );
+            if(type == ExpressionType_Number) {
+                const double value = ast_node_create_const_variable_get_number(current);
+                RuntimeVariable runtime_variable = runtime_variable_create_number(name, value);
+                runtime_variable_array_push(&runtime.variables, &runtime_variable);
+            }
+            else if(type == ExpressionType_Multitoken) {
+                RuntimeVariable runtime_variable = runtime_variable_create_multitoken(
+                    shallow_ast_node_create_const_variable_multitoken_get_expression(
+                        current->data.CreateConstVariable.node
+                    ),
+                    &runtime
+                );
+                runtime_variable_set_name(&runtime_variable, name);
+                runtime_variable_array_push(&runtime.variables, &runtime_variable);
+            }
+            else {
+                fprintf(stderr, "TODO: Add message\n");
+                PANIC("");
+            }
+
         }
         else {
             PANIC("Type not implemented");

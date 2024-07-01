@@ -145,6 +145,9 @@ enum LexerTokenType identify_token_type(char* token) {
 	else if(token[0] == '=') {
 	    return LexerTokenType_Equals;
 	}
+	else if(token[0] == '+') {
+	    return LexerTokenType_Plus;
+	}
     }
     else if(strlen(token) == 2) {
 	if(strcmp(token, "==") == 0) {
@@ -306,6 +309,10 @@ LexerTokenArray lexer_lex_code(char* code) {
 		lexer.state = LexerState_Number;
 		str_push_character(current_token, character);
 	    }
+            else if(character == '+') {
+                LexerToken token = lexer_token_create("+");
+                lexer_token_array_push(&token_array, &token);
+            }
 	    else {
 		fprintf(stderr, "Failed to identify: '%c'\n", character);
 		PANIC("");
@@ -448,3 +455,21 @@ bool __test_lexer_token_array_compare(LexerTokenArray* expected, LexerTokenArray
     }
     return true;
 }
+
+LexerToken lexer_token_clone(LexerToken* token) {
+    LexerToken output = { 0 };
+    output.type = token->type;
+    output.raw = clone_string(token->raw);
+    return output;
+}
+
+LexerTokenArray lexer_token_array_clone(LexerTokenArray* array) {
+    LexerTokenArray output = { 0 };
+    output.count = array->count;
+    for(size_t i = 0 ; i < array->count ; i++) {
+        LexerToken clone = lexer_token_clone(&array->tokens[i]);
+        lexer_token_array_push(&output, &clone);
+    }
+    return output;
+}
+

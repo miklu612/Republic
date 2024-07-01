@@ -5,7 +5,7 @@
 #include"variable.h"
 
 
-typedef struct {
+typedef struct Runtime {
     char buffer;
     RuntimeVariableArray variables;
 } Runtime;

@@ -76,7 +76,19 @@ ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) 
 		    ast_node_array_push(&ast_node_array, &node);
 		    i += 1;
 		}
+                else {
+                    fprintf(stderr,
+                        "Todo: Add message\n"
+                    );
+                    PANIC("");
+                }
 	    }
+            else {
+                fprintf(stderr,
+                    "Todo: Add message\n"
+                );
+                PANIC("");
+            }
 	}
         else if(c_node->type == ShallowASTNodeType_CreateConstVariable) {
             ASTNode node = ast_node_create_create_const_variable(&shallow_array.nodes[i]);
