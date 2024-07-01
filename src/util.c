@@ -6,16 +6,16 @@
 
 bool is_letter(char character) {
     if(character >= 'a' && character <= 'z') {
-	return true;
+        return true;
     }
     else if(character >= 'A' && character <= 'Z') {
-	return true;
+        return true;
     }
     else if(character == '_') {
         return true;
     }
     else {
-	return false;
+        return false;
     }
 }
 
@@ -24,8 +24,8 @@ bool is_digit(char character) {
 }
 
 char* clone_string(char* text_to_copy) {
-    char* output = malloc((strlen(text_to_copy)+1) * sizeof(char));
-    memset(output, 0, (strlen(text_to_copy)+1) * sizeof(char));
+    char* output = calloc(strlen(text_to_copy)+1, sizeof(char));
+    assert(output != NULL);
     memcpy(output, text_to_copy, strlen(text_to_copy));
     return output;
 }
