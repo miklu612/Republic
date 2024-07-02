@@ -27,6 +27,14 @@ enum ExpressionType {
 
 struct ShallowASTNodeArray;
 
+typedef struct Expression {
+    enum ExpressionType type;
+    union {
+        char* identifier;
+        double number;
+    } value;
+} Expression;
+
 // These are "shallow" ast nodes. This means they are more simple than actual
 // ast nodes, but this is for a reason. First we want to create a general
 // overview of the code and then try to make sense of it.
@@ -85,21 +93,8 @@ typedef struct ShallowASTNode {
 
         struct {
 
-            struct {
-                enum ExpressionType type;
-                union {
-                    char* identifier;
-                    double number;
-                } value;
-            } left;
-
-            struct {
-                enum ExpressionType type;
-                union {
-                    char* identifier;
-                    double number;
-                } value;
-            } right;
+            Expression left;
+            Expression right;
 
         } Addition;
 
