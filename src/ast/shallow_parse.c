@@ -128,6 +128,10 @@ void shallow_ast_node_free(ShallowASTNode* node) {
             PANIC("Not implemented");
         }
     }
+    else if(node->type == ShallowASTNodeType_Subtraction) {
+        expression_free(&node->data.Subtraction.left);
+        expression_free(&node->data.Subtraction.right);
+    }
     else {
         fprintf(stderr, "State: %d\n", node->type);
         PANIC("Not implemented");
@@ -393,6 +397,14 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
             }
             else if(lexer_token_array->tokens[i+1].type == LexerTokenType_Plus) {
                 ShallowASTNode token = shallow_ast_node_create_addition(
+                    &lexer_token_array->tokens[i],
+                    &lexer_token_array->tokens[i+2]
+                );
+                shallow_ast_node_array_push(&array, &token);
+                i += 2;
+            }
+            else if(lexer_token_array->tokens[i+1].type == LexerTokenType_Minus) {
+                ShallowASTNode token = shallow_ast_node_create_subtraction(
                     &lexer_token_array->tokens[i],
                     &lexer_token_array->tokens[i+2]
                 );
@@ -665,6 +677,13 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
         output->type = ShallowASTNodeType_Semicolon;
         return output;
     }
+    else if(node->type == ShallowASTNodeType_Subtraction) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = ShallowASTNodeType_Subtraction;
+        output->data.Subtraction.left = expression_clone(&node->data.Subtraction.left);
+        output->data.Subtraction.right = expression_clone(&node->data.Subtraction.right);
+        return output;
+    }
     else {
         fprintf(stderr, "deep copy is not implemented for: %d\n", node->type);
         PANIC("");
@@ -751,4 +770,69 @@ ShallowASTNodeArray* shallow_ast_node_create_const_variable_multitoken_get_expre
     assert(node->data.CreateConstVariable.type == ExpressionType_Multitoken);
     return node->data.CreateConstVariable.value.multitoken;
 
+}
+
+ShallowASTNode shallow_ast_node_create_subtraction(LexerToken* left, LexerToken* right) {
+    ShallowASTNode output = { 0 };
+    output.type = ShallowASTNodeType_Subtraction;
+    output.data.Subtraction.left = expression_create_from_lexer_token(left);
+    output.data.Subtraction.right = expression_create_from_lexer_token(right);
+    return output;
+}
+
+Expression expression_create_from_lexer_token(LexerToken* token) {
+    if(token->type == LexerTokenType_NumberConstant) {
+        Expression output = { 0 };
+        output.type = ExpressionType_Number;
+        output.value.number = strtod(token->raw, NULL);
+        return output;
+    }
+    else if(token->type == LexerTokenType_Identifier) {
+        Expression output = { 0 };
+        output.type = ExpressionType_Identifier;
+        output.value.identifier = clone_string(token->raw);
+        return output;
+    }
+    else {
+        fprintf(stderr, 
+            "Failed to create an expression\n"
+        );
+        PANIC("");
+    }
+}
+
+Expression expression_clone(Expression* expression) {
+    if(expression->type == ExpressionType_Identifier) {
+        Expression output = { 0 };
+        output.type = ExpressionType_Identifier;
+        output.value.identifier = clone_string(expression->value.identifier);
+        return output;
+    }
+    else if(expression->type == ExpressionType_Number) {
+        Expression output = { 0 };
+        output.type = ExpressionType_Number;
+        output.value.number = expression->value.number;
+        return output;
+    }
+    else {
+        fprintf(stderr,
+            "TODO: Add message\n"
+        );
+        PANIC("");
+    }
+}
+
+void expression_free(Expression* expression) {
+    if(expression->type == ExpressionType_Identifier) {
+        free(expression->value.identifier);
+    }
+    else if(expression->type == ExpressionType_Number) {
+        // Nothing to do
+    }
+    else {
+        fprintf(stderr,
+            "TODO: Add message\n"
+        );
+        PANIC("");
+    }
 }

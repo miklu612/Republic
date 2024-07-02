@@ -13,6 +13,7 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_ConditionalCheck,
     ShallowASTNodeType_NumberConstant,
     ShallowASTNodeType_Addition,
+    ShallowASTNodeType_Subtraction,
 };
 
 enum ConditionalCheckType {
@@ -92,11 +93,14 @@ typedef struct ShallowASTNode {
         } NumberConstant;
 
         struct {
-
             Expression left;
             Expression right;
-
         } Addition;
+
+        struct {
+            Expression left;
+            Expression right;
+        } Subtraction;
 
     } data;
 } ShallowASTNode;
@@ -105,6 +109,10 @@ typedef struct ShallowASTNodeArray {
     ShallowASTNode* nodes;
     size_t count;
 } ShallowASTNodeArray;
+
+Expression expression_create_from_lexer_token(LexerToken*);
+Expression expression_clone(Expression*);
+void expression_free(Expression*);
 
 ShallowASTNode shallow_ast_node_create_string_constant(char* string);
 void shallow_ast_node_free(ShallowASTNode* node);
@@ -151,6 +159,8 @@ ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, S
 double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
 
 ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right);
+
+ShallowASTNode shallow_ast_node_create_subtraction(LexerToken* left, LexerToken* right);
 
 ShallowASTNodeArray shallow_ast_node_array_clone(ShallowASTNodeArray*);
 

@@ -20,6 +20,7 @@ enum LexerTokenType {
     LexerTokenType_Newline,
     LexerTokenType_KeywordConst,
     LexerTokenType_Plus,
+    LexerTokenType_Minus,
 };
 
 

@@ -120,6 +120,35 @@ RuntimeVariable runtime_variable_create_multitoken(ShallowASTNodeArray* array, R
             }
             variable.value.number = left_value + right_value;
         }
+        else if(array->nodes[i].type == ShallowASTNodeType_Subtraction) {
+            double left_value = 0;
+            double right_value = 0;
+            if(array->nodes[i].data.Addition.left.type == ExpressionType_Identifier) {
+                RuntimeVariable* variable = runtime_variable_array_get(
+                    &runtime->variables, 
+                    array->nodes[i].data.Addition.left.value.identifier
+                );
+                assert(variable != NULL);
+                assert(variable->type == VariableType_Number);
+                left_value = variable->value.number;
+            }
+            else if(array->nodes[i].data.Addition.left.type == ExpressionType_Number) {
+                left_value = array->nodes[i].data.Addition.left.value.number;
+            }
+            if(array->nodes[i].data.Addition.right.type == ExpressionType_Identifier) {
+                RuntimeVariable* variable = runtime_variable_array_get(
+                    &runtime->variables, 
+                    array->nodes[i].data.Addition.right.value.identifier
+                );
+                assert(variable != NULL);
+                assert(variable->type == VariableType_Number);
+                right_value = variable->value.number;
+            }
+            else if(array->nodes[i].data.Addition.right.type == ExpressionType_Number) {
+                right_value = array->nodes[i].data.Addition.left.value.number;
+            }
+            variable.value.number = left_value - right_value;
+        }
         else {
             fprintf(stderr, "Todo: Add message\n");
             PANIC("");
