@@ -109,24 +109,8 @@ void shallow_ast_node_free(ShallowASTNode* node) {
         }
     }
     else if(node->type == ShallowASTNodeType_Addition) {
-        if(node->data.Addition.left.type == ExpressionType_Identifier) {
-            free(node->data.Addition.left.value.identifier);
-        }
-        else if(node->data.Addition.left.type == ExpressionType_Number) {
-
-        }
-        else {
-            PANIC("Not implemented");
-        }
-        if(node->data.Addition.right.type == ExpressionType_Identifier) {
-            free(node->data.Addition.right.value.identifier);
-        }
-        else if(node->data.Addition.right.type == ExpressionType_Number) {
-
-        }
-        else {
-            PANIC("Not implemented");
-        }
+        expression_free(&node->data.Addition.left);
+        expression_free(&node->data.Addition.right);
     }
     else if(node->type == ShallowASTNodeType_Subtraction) {
         expression_free(&node->data.Subtraction.left);
@@ -201,9 +185,6 @@ ShallowASTNode parser_shallow_get_access_object_member(LexerTokenArray* array, s
     ShallowASTNode shallow_ast_node = shallow_ast_node_create_access_object_member(
         &array->tokens[index] 
     );
-    //fprintf(stderr, "%s\n", shallow_ast_node.data.AccessObjectMember.object_name);
-    fprintf(stderr, "%s\n", array->tokens[index].raw);
-    //shallow_ast_node.data.AccessObjectMember.object_name = clone_string(array->tokens[index].raw);
     for(size_t i = index+1 ; i+1 < array->count ; i+=2) {
         if(array->tokens[i].type != LexerTokenType_Dot) {
             break;
@@ -339,43 +320,11 @@ void shallow_ast_node_array_print(ShallowASTNodeArray* array) {
     }
 }
 
-void shallow_ast_node_addition_set_left(ShallowASTNode* node, LexerToken* token) {
-    assert(node->type == ShallowASTNodeType_Addition);
-    if(token->type == LexerTokenType_Identifier) {
-        node->data.Addition.left.type = ExpressionType_Identifier;
-        node->data.Addition.left.value.identifier = clone_string(token->raw);
-    }
-    else if(token->type == LexerTokenType_NumberConstant) {
-        node->data.Addition.left.type = ExpressionType_Number;
-        node->data.Addition.left.value.number = strtod(token->raw, NULL);
-    }
-    else {
-        fprintf(stderr, "TODO: Add message\n");
-        PANIC("");
-    }
-}
-
-void shallow_ast_node_addition_set_right(ShallowASTNode* node, LexerToken* token) {
-    assert(node->type == ShallowASTNodeType_Addition);
-    if(token->type == LexerTokenType_Identifier) {
-        node->data.Addition.right.type = ExpressionType_Identifier;
-        node->data.Addition.right.value.identifier = clone_string(token->raw);
-    }
-    else if(token->type == LexerTokenType_NumberConstant) {
-        node->data.Addition.right.type = ExpressionType_Number;
-        node->data.Addition.right.value.number = strtod(token->raw, NULL);
-    }
-    else {
-        fprintf(stderr, "TODO: Add message\n");
-        PANIC("");
-    }
-}
-
 ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right) {
     ShallowASTNode node = { 0 };
     node.type = ShallowASTNodeType_Addition;
-    shallow_ast_node_addition_set_left(&node, left);
-    shallow_ast_node_addition_set_right(&node, right);
+    node.data.Addition.left = expression_create_from_lexer_token(left);
+    node.data.Addition.right = expression_create_from_lexer_token(right);
     return node;
 }
 
