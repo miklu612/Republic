@@ -10,7 +10,7 @@
 
 bool is_letter(char character);
 bool is_digit(char character);
-char* clone_string(char*);
+char* clone_string(const char*);
 
 
 #endif

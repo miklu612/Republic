@@ -21,6 +21,8 @@ enum LexerTokenType {
     LexerTokenType_KeywordConst,
     LexerTokenType_Plus,
     LexerTokenType_Minus,
+    LexerTokenType_Colon,
+    LexerTokenType_Comma,
 };
 
 

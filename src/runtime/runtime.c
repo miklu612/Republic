@@ -27,11 +27,11 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
                 else if(arg->type == ShallowASTNodeType_AccessIdentifier) {
                     char* name = shallow_ast_node_access_identifier_get_name(arg);
                     RuntimeVariable* variable = runtime_get_variable(runtime, name);
-                    if(variable->type == VariableType_Number) {
-                        printf("%f\n", variable->value.number);
+                    if(variable->value.type == ValueType_Number) {
+                        printf("%f\n", variable->value.value.number);
                     }
                     else {
-                        fprintf(stderr, "Logging is not implemented for variable type: %d\n", variable->type);
+                        fprintf(stderr, "Logging is not implemented for variable type: %d\n", variable->value.type);
                         PANIC("");
                     }
                 }
@@ -56,8 +56,8 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
                 ShallowASTNode* node = arg->data.ConditionalCheck.right;
                 const double value = shallow_ast_node_number_constant_get_value(node);
 
-                assert(variable->type == VariableType_Number);
-                if(variable->value.number != value) {
+                assert(variable->value.type == ValueType_Number);
+                if(variable->value.value.number != value) {
                     fprintf(stderr, "Assertion failed.\n");
                     exit(-1);
                 }
@@ -117,6 +117,10 @@ void runtime_start(ASTNodeArray* array) {
                 runtime_variable_set_name(&runtime_variable, name);
                 runtime_variable_array_push(&runtime.variables, &runtime_variable);
             }
+            else if(type == ExpressionType_Object) {
+                RuntimeVariable variable = runtime_variable_create_object(current);
+                runtime_variable_array_push(&runtime.variables, &variable);
+            }
             else {
                 fprintf(stderr, "TODO: Add message\n");
                 PANIC("");
@@ -134,5 +138,24 @@ void runtime_start(ASTNodeArray* array) {
 
 }
 
-
+Value* runtime_get_object_property(Runtime* runtime, ShallowASTNode* path) {
+    assert(path->type == ShallowASTNodeType_AccessObjectMember);
+    assert(shallow_ast_node_access_object_member_get_path_count(path) == 1);
+    RuntimeVariable* var = runtime_variable_array_get(&runtime->variables, path->data.AccessObjectMember.object_name);
+    assert(var != NULL);
+    if(var->value.type != ValueType_Object) {
+        fprintf(stderr,
+            "Expected: ValueType_Object(%d)\n"
+            "Got: %d\n"
+            ,
+            ValueType_Object,
+            var->value.type
+        );
+        PANIC("");
+    }
+    return object_get_property(
+        var->value.value.object,
+        shallow_ast_node_access_object_member_get_path_part(path, 0)
+    );
+}
 

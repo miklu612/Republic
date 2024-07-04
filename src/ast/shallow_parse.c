@@ -51,6 +51,7 @@ ShallowASTNode shallow_ast_node_create_create_const_variable_number(char* name, 
 }
 
 void shallow_ast_node_free(ShallowASTNode* node) {
+    if(node == NULL) { return; } 
     if(node->type == ShallowASTNodeType_AccessObjectMember) {
         char*** names = &node->data.AccessObjectMember.path_data.names;
         char** object_name = &node->data.AccessObjectMember.object_name;
@@ -90,6 +91,9 @@ void shallow_ast_node_free(ShallowASTNode* node) {
     else if(node->type == ShallowASTNodeType_Semicolon) {
         // Nothing needed to be done.
     }
+    else if(node->type == ShallowASTNodeType_Comma) {
+        // Nothing needed to be done.
+    }
     else if(node->type == ShallowASTNodeType_NumberConstant) {
         // Nothing needed to be done.
     }
@@ -104,6 +108,12 @@ void shallow_ast_node_free(ShallowASTNode* node) {
             );
             free(node->data.CreateConstVariable.value.multitoken);
         }
+        else if(node->data.CreateConstVariable.type == ExpressionType_Object) {
+            shallow_ast_node_free(
+                node->data.CreateConstVariable.value.object
+            );
+            free(node->data.CreateConstVariable.value.object);
+        }
         else {
             PANIC("Not implemented");
         }
@@ -115,6 +125,16 @@ void shallow_ast_node_free(ShallowASTNode* node) {
     else if(node->type == ShallowASTNodeType_Subtraction) {
         expression_free(&node->data.Subtraction.left);
         expression_free(&node->data.Subtraction.right);
+    }
+    else if(node->type == ShallowASTNodeType_CreateObjectProperty) {
+        free(node->data.CreateObjectProperty.identifier);
+    }
+    else if(node->type == ShallowASTNodeType_CreateObject) {
+        shallow_ast_node_array_free(
+            node->data.CreateObject.tokens
+        );
+        free(node->data.CreateObject.tokens);
+        //free(node->data.CreateObjectProperty.identifier);
     }
     else {
         fprintf(stderr, "State: %d\n", node->type);
@@ -240,7 +260,20 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
         else if(array->tokens[i].type == LexerTokenType_Identifier) {
             // TODO: Fix potential buffer overflow. Thanks!
             if(array->tokens[i+1].type == LexerTokenType_DoubleEquals) {
-                if(array->tokens[i+2].type == LexerTokenType_NumberConstant) {
+                if(
+                    (
+                        array->tokens[i+2].type == LexerTokenType_NumberConstant &&
+                        array->tokens[i].type == LexerTokenType_Identifier
+                    ) ||
+                    (
+                        array->tokens[i+2].type == LexerTokenType_Identifier &&
+                        array->tokens[i].type == LexerTokenType_NumberConstant
+                    ) ||
+                    (
+                        array->tokens[i+2].type == LexerTokenType_Identifier &&
+                        array->tokens[i].type == LexerTokenType_Identifier
+                    )
+                ) {
                     ShallowASTNode left = shallow_ast_node_create_from_lexer_token(&array->tokens[i]);
                     ShallowASTNode right = shallow_ast_node_create_from_lexer_token(&array->tokens[i+2]);
                     ShallowASTNode argument = shallow_ast_node_conditional_check_create(
@@ -328,6 +361,25 @@ ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* ri
     return node;
 }
 
+ShallowASTNode shallow_ast_node_create_create_object_property(LexerToken* identifier, LexerToken* value) {
+    assert(identifier->type == LexerTokenType_Identifier);
+    assert(value->type == LexerTokenType_NumberConstant);
+    ShallowASTNode node = { 0 };
+    node.type = ShallowASTNodeType_CreateObjectProperty;
+    node.data.CreateObjectProperty.identifier = clone_string(identifier->raw);
+    node.data.CreateObjectProperty.value.type = ValueType_Number;
+    node.data.CreateObjectProperty.value.value.number = strtod(value->raw, NULL);
+    return node;
+}
+
+ShallowASTNode shallow_ast_node_create_create_object(ShallowASTNodeArray* tokens) {
+    ShallowASTNode token = { 0 };
+    token.type = ShallowASTNodeType_CreateObject;
+    token.data.CreateObject.tokens = calloc(1, sizeof(ShallowASTNodeArray));
+    *token.data.CreateObject.tokens = shallow_ast_node_array_clone(tokens);
+    return token;
+}
+
 ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
     ShallowASTNodeArray array = { 0 };
 
@@ -360,6 +412,14 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
                 shallow_ast_node_array_push(&array, &token);
                 i += 2;
             }
+            else if(lexer_token_array->tokens[i+1].type == LexerTokenType_Colon) {
+                ShallowASTNode token = shallow_ast_node_create_create_object_property(
+                    &lexer_token_array->tokens[i],
+                    &lexer_token_array->tokens[i+2]
+                );
+                shallow_ast_node_array_push(&array, &token);
+                i += 2;
+            }
             else {
                 fprintf(stderr,
                     "Error: Failed to identify identifier type\n"
@@ -383,78 +443,111 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
         else if(lexer_token_array->tokens[i].type == LexerTokenType_Newline) {
             // TODO: Implement newlines
         }
+        else if(lexer_token_array->tokens[i].type == LexerTokenType_Comma) {
+            ShallowASTNode token = { 0 };
+            token.type = ShallowASTNodeType_Comma;
+            shallow_ast_node_array_push(&array, &token);
+        }
         else if(lexer_token_array->tokens[i].type == LexerTokenType_KeywordConst) {
             assert(i+3 < lexer_token_array->count);
             assert(lexer_token_array->tokens[i+1].type == LexerTokenType_Identifier);
             assert(lexer_token_array->tokens[i+2].type == LexerTokenType_Equals);
             assert(
                 lexer_token_array->tokens[i+3].type == LexerTokenType_NumberConstant ||
-                lexer_token_array->tokens[i+3].type == LexerTokenType_Identifier
+                lexer_token_array->tokens[i+3].type == LexerTokenType_Identifier ||
+                lexer_token_array->tokens[i+3].type == LexerTokenType_CurlyBracketStart
                 // TODO: Add more valid states here
             );
 
             // Find out if the assignment is multiple tokens or a single token
-            size_t token_count = 0;
-            for(size_t j = i+3 ; j < lexer_token_array->count ; j++) {
-                enum LexerTokenType type = lexer_token_array->tokens[j].type;
-                if(type == LexerTokenType_Newline || type == LexerTokenType_Semicolon) {
-                    break;
-                }
-                else {
-                    token_count += 1;
-                    //fprintf(stderr, "%ld\n", token_count);
-                }
-            }
+            if(lexer_token_array->tokens[i+3].type != LexerTokenType_CurlyBracketStart) {
 
-            if(token_count == 1) {
-                if(lexer_token_array->tokens[i+3].type == LexerTokenType_NumberConstant) {
-                    ShallowASTNode node = shallow_ast_node_create_create_const_variable_number(
-                        lexer_token_array->tokens[i+1].raw,
-                        strtod(lexer_token_array->tokens[i+3].raw, NULL)
-                    );
-                    shallow_ast_node_array_push(&array, &node);
-                    i += 3;
-                }
-                else {
-                    fprintf(stderr,
-                        "Error\n"
-                        "\tDescription:\n"
-                        "\t\tThe current type of assignemnt is not supported\n"
-                        "\tType information:\n"
-                        "\t\tType: (LexerTokenType) %d\n"
-                        "\tWhat can I do to fix this?\n"
-                        "\t\tNothing really. While this is functional code, it's not implemented\n"
-                        "\t\tin this runtime yet.\n"
-                        ,
-                        lexer_token_array->tokens[i+3].type
-                    );
-                    PANIC("This assignment is not implemented");
-                }
-            }
-            else {
-                ShallowASTNode node = shallow_ast_node_create_create_const_variable_multitoken(
-                        lexer_token_array->tokens[i+1].raw
-                );
-
-                LexerTokenArray tokens = { 0 };
+                size_t token_count = 0;
                 for(size_t j = i+3 ; j < lexer_token_array->count ; j++) {
                     enum LexerTokenType type = lexer_token_array->tokens[j].type;
-                    if(type != LexerTokenType_Semicolon && type != LexerTokenType_Newline) {
+                    if(type == LexerTokenType_Newline || type == LexerTokenType_Semicolon) {
+                        break;
+                    }
+                    else {
+                        token_count += 1;
+                    }
+                }
+
+                if(token_count == 1) {
+                    if(lexer_token_array->tokens[i+3].type == LexerTokenType_NumberConstant) {
+                        ShallowASTNode node = shallow_ast_node_create_create_const_variable_number(
+                            lexer_token_array->tokens[i+1].raw,
+                            strtod(lexer_token_array->tokens[i+3].raw, NULL)
+                        );
+                        shallow_ast_node_array_push(&array, &node);
+                        i += 3;
+                    }
+                    else {
+                        fprintf(stderr,
+                            "Error\n"
+                            "\tDescription:\n"
+                            "\t\tThe current type of assignemnt is not supported\n"
+                            "\tType information:\n"
+                            "\t\tType: (LexerTokenType) %d\n"
+                            "\tWhat can I do to fix this?\n"
+                            "\t\tNothing really. While this is functional code, it's not implemented\n"
+                            "\t\tin this runtime yet.\n"
+                            ,
+                            lexer_token_array->tokens[i+3].type
+                        );
+                        PANIC("This assignment is not implemented");
+                    }
+                }
+                else {
+                    ShallowASTNode node = shallow_ast_node_create_create_const_variable_multitoken(
+                            lexer_token_array->tokens[i+1].raw
+                    );
+
+                    LexerTokenArray tokens = { 0 };
+                    for(size_t j = i+3 ; j < lexer_token_array->count ; j++) {
+                        enum LexerTokenType type = lexer_token_array->tokens[j].type;
+                        if(type != LexerTokenType_Semicolon && type != LexerTokenType_Newline) {
+                            LexerToken token = lexer_token_clone(&lexer_token_array->tokens[j]);
+                            lexer_token_array_push(&tokens, &token);
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    node.data.CreateConstVariable.value.multitoken = calloc(1, sizeof(ShallowASTNodeArray));
+                    *node.data.CreateConstVariable.value.multitoken = parse_shallow_parse(&tokens);
+                    shallow_ast_node_array_push(&array, &node);
+                    i += 2 + tokens.count;
+                    printf("= '%s'\n", lexer_token_array->tokens[i].raw);
+                    lexer_token_array_free(&tokens);
+                }
+            }
+            else if(lexer_token_array->tokens[i+3].type == LexerTokenType_CurlyBracketStart) {
+                LexerTokenArray tokens = { 0 };
+                for(size_t j = i+4 ; j < lexer_token_array->count ; j++) {
+                    if(lexer_token_array->tokens[j].type == LexerTokenType_CurlyBracketEnd) {
+                        break;
+                    }
+                    else {
                         LexerToken token = lexer_token_clone(&lexer_token_array->tokens[j]);
                         lexer_token_array_push(&tokens, &token);
                     }
-                    else {
-                        break;
-                    }
                 }
-                node.data.CreateConstVariable.value.multitoken = calloc(1, sizeof(ShallowASTNodeArray));
-                *node.data.CreateConstVariable.value.multitoken = parse_shallow_parse(&tokens);
+                fprintf(stderr, "%ld\n", i);
+                ShallowASTNodeArray shallow_tokens = parse_shallow_parse(&tokens);
+                ShallowASTNode node = shallow_ast_node_create_create_const_variable_object(
+                    lexer_token_array->tokens[i+1].raw,
+                    &shallow_tokens
+                );
+                i += 4 + tokens.count;
                 shallow_ast_node_array_push(&array, &node);
-                i += 2 + tokens.count;
-                printf("= '%s'\n", lexer_token_array->tokens[i].raw);
                 lexer_token_array_free(&tokens);
+                shallow_ast_node_array_free(&shallow_tokens);
             }
-
+            else {
+                fprintf(stderr, "Err\n");
+                PANIC("");
+            }
         }
         else {
             fprintf(stderr,
@@ -470,6 +563,16 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
 
     return array;
 
+}
+
+ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens) {
+    ShallowASTNode output = { 0 };
+    output.type = ShallowASTNodeType_CreateConstVariable;
+    output.data.CreateConstVariable.type = ExpressionType_Object;
+    output.data.CreateConstVariable.value.object = calloc(1, sizeof(ShallowASTNode));
+    *output.data.CreateConstVariable.value.object = shallow_ast_node_create_create_object(tokens);
+    output.data.CreateConstVariable.name = clone_string(name);
+    return output;
 }
 
 void shallow_ast_create_const_variable_multitoken_push(ShallowASTNode* s_node, ShallowASTNode* l_token) {
@@ -552,9 +655,23 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
                 node->data.CreateConstVariable.value.multitoken
             );
         }
+        else if(node->data.CreateConstVariable.type == ExpressionType_Object) {
+            output->data.CreateConstVariable.type = ExpressionType_Object;
+            //output->data.CreateConstVariable.value.object = calloc(1, sizeof(ShallowASTNodeArray));
+            output->data.CreateConstVariable.value.object = shallow_ast_node_deep_copy(
+                node->data.CreateConstVariable.value.object
+            );
+        }
         else {
             PANIC("CreateConstVariable: Type not implemented");
         }
+        return output;
+    }
+    else if(node->type == ShallowASTNodeType_CreateObject) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = ShallowASTNodeType_CreateObject;
+        output->data.CreateObject.tokens = calloc(1, sizeof(ShallowASTNodeArray));
+        *output->data.CreateObject.tokens = shallow_ast_node_array_clone(node->data.CreateObject.tokens);
         return output;
     }
     else if(node->type == ShallowASTNodeType_AccessIdentifier) {
@@ -631,6 +748,20 @@ ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode* node) {
         output->type = ShallowASTNodeType_Subtraction;
         output->data.Subtraction.left = expression_clone(&node->data.Subtraction.left);
         output->data.Subtraction.right = expression_clone(&node->data.Subtraction.right);
+        return output;
+    }
+    else if(node->type == ShallowASTNodeType_CreateObjectProperty) {
+        // TODO: Add support for more types than just numbers
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = ShallowASTNodeType_CreateObjectProperty;
+        output->data.CreateObjectProperty.identifier = clone_string(node->data.CreateObjectProperty.identifier);
+        output->data.CreateObjectProperty.value.type = ValueType_Number;
+        output->data.CreateObjectProperty.value.value.number = node->data.CreateObjectProperty.value.value.number;
+        return output;
+    }
+    else if(node->type == ShallowASTNodeType_Comma) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        output->type = ShallowASTNodeType_Comma;
         return output;
     }
     else {

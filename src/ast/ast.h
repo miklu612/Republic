@@ -46,6 +46,7 @@ void ast_node_array_print(ASTNodeArray*);
 
 ASTNode ast_node_create_function_call(ShallowASTNode* object, ShallowASTNode* call);
 
+
 char* ast_node_create_const_variable_get_name(ASTNode*);
 double ast_node_create_const_variable_get_number(ASTNode*);
 enum ExpressionType ast_node_create_const_variable_get_expression_type(ASTNode*);

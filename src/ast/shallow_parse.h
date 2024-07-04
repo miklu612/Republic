@@ -2,8 +2,12 @@
 #define shallow_parse_h
 
 #include"../lexer/lexer.h"
+#include"../runtime/value.h"
 
+// ShallowASTNodeType_InvalidToken is not supposed to be used as a real token
+// type. It represents an unset node type, which is an error.
 enum ShallowASTNodeType {
+    ShallowASTNodeType_InvalidToken,
     ShallowASTNodeType_AccessObjectMember,
     ShallowASTNodeType_AccessIdentifier,
     ShallowASTNodeType_Call,
@@ -14,6 +18,9 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_NumberConstant,
     ShallowASTNodeType_Addition,
     ShallowASTNodeType_Subtraction,
+    ShallowASTNodeType_CreateObjectProperty,
+    ShallowASTNodeType_CreateObject,
+    ShallowASTNodeType_Comma,
 };
 
 enum ConditionalCheckType {
@@ -24,6 +31,7 @@ enum ExpressionType {
     ExpressionType_Number,
     ExpressionType_Identifier,
     ExpressionType_Multitoken,
+    ExpressionType_Object,
 };
 
 struct ShallowASTNodeArray;
@@ -75,6 +83,7 @@ typedef struct ShallowASTNode {
             union {
                 double number;
                 struct ShallowASTNodeArray* multitoken;
+                struct ShallowASTNode* object;
             } value;
         } CreateConstVariable;
 
@@ -101,6 +110,15 @@ typedef struct ShallowASTNode {
             Expression left;
             Expression right;
         } Subtraction;
+
+        struct {
+            struct ShallowASTNodeArray* tokens;
+        } CreateObject;
+
+        struct {
+            char* identifier;
+            Value value;
+        } CreateObjectProperty;
 
     } data;
 } ShallowASTNode;
@@ -163,5 +181,11 @@ ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* ri
 ShallowASTNode shallow_ast_node_create_subtraction(LexerToken* left, LexerToken* right);
 
 ShallowASTNodeArray shallow_ast_node_array_clone(ShallowASTNodeArray*);
+
+ShallowASTNode shallow_ast_node_create_create_object_property(LexerToken* identifier, LexerToken* value);
+
+ShallowASTNode shallow_ast_node_create_create_object(ShallowASTNodeArray* tokens);
+
+ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens);
 
 #endif

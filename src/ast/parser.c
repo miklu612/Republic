@@ -94,6 +94,9 @@ ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) 
             ASTNode node = ast_node_create_create_const_variable(&shallow_array.nodes[i]);
             ast_node_array_push(&ast_node_array, &node);
         }
+        else if(c_node->type == ShallowASTNodeType_CreateObject) {
+            printf("Invalid state\n");
+        }
 	else if(c_node->type == ShallowASTNodeType_Semicolon) {
 	    printf("Semicolons not supported.\n");
 	}

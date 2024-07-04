@@ -23,7 +23,7 @@ bool is_digit(char character) {
     return character <= '9' && character >= '0';
 }
 
-char* clone_string(char* text_to_copy) {
+char* clone_string(const char* text_to_copy) {
     char* output = calloc(strlen(text_to_copy)+1, sizeof(char));
     assert(output != NULL);
     memcpy(output, text_to_copy, strlen(text_to_copy));

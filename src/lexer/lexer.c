@@ -151,6 +151,12 @@ enum LexerTokenType identify_token_type(char* token) {
 	else if(token[0] == '-') {
 	    return LexerTokenType_Minus;
 	}
+	else if(token[0] == ':') {
+	    return LexerTokenType_Colon;
+	}
+	else if(token[0] == ',') {
+	    return LexerTokenType_Comma;
+	}
     }
     else if(strlen(token) == 2) {
 	if(strcmp(token, "==") == 0) {
@@ -318,6 +324,14 @@ LexerTokenArray lexer_lex_code(char* code) {
             }
             else if(character == '-') {
                 LexerToken token = lexer_token_create("-");
+                lexer_token_array_push(&token_array, &token);
+            }
+            else if(character == ':') {
+                LexerToken token = lexer_token_create(":");
+                lexer_token_array_push(&token_array, &token);
+            }
+            else if(character == ',') {
+                LexerToken token = lexer_token_create(",");
                 lexer_token_array_push(&token_array, &token);
             }
 	    else {

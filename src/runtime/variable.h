@@ -2,6 +2,8 @@
 #define runtime_variable_h
 
 #include"../ast/shallow_parse.h"
+#include"object.h"
+#include"value.h"
 
 struct Runtime;
 
@@ -11,17 +13,11 @@ enum VariableDefType {
     VariableDefType_Const,
 };
 
-enum VariableType {
-    VariableType_Number
-};
 
 typedef struct {
     char* name;
     enum VariableDefType def_type;
-    enum VariableType type;
-    struct {
-        double number;
-    } value;
+    Value value;
 } RuntimeVariable;
 
 typedef struct {
@@ -35,6 +31,8 @@ RuntimeVariable runtime_variable_create_number(char* name, double value);
 void runtime_variable_set_name(RuntimeVariable*, char* name);
 void runtime_variable_set_value_number(RuntimeVariable*, double value);
 void runtime_variable_free(RuntimeVariable*);
+
+RuntimeVariable runtime_variable_create_object(ASTNode* node);
 
 // Takes ownership
 void runtime_variable_array_push(RuntimeVariableArray*, RuntimeVariable*);
