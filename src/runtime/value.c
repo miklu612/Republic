@@ -33,3 +33,9 @@ void value_free(Value* value) {
     }
 }
 
+Value value_create_from_double(double number) {
+    Value output = { 0 };
+    output.type = ValueType_Number;
+    output.value.number = number;
+    return output;
+}

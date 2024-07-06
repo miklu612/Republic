@@ -4,6 +4,7 @@
 #include"../lexer/lexer.h"
 #include"../runtime/value.h"
 
+
 // ShallowASTNodeType_InvalidToken is not supposed to be used as a real token
 // type. It represents an unset node type, which is an error.
 enum ShallowASTNodeType {
@@ -30,17 +31,20 @@ enum ConditionalCheckType {
 enum ExpressionType {
     ExpressionType_Number,
     ExpressionType_Identifier,
+    ExpressionType_PropertyAccess,
     ExpressionType_Multitoken,
     ExpressionType_Object,
 };
 
 struct ShallowASTNodeArray;
+struct ShallowASTNode;
 
 typedef struct Expression {
     enum ExpressionType type;
     union {
         char* identifier;
         double number;
+        struct ShallowASTNode* property_access;
     } value;
 } Expression;
 
@@ -129,7 +133,8 @@ typedef struct ShallowASTNodeArray {
 } ShallowASTNodeArray;
 
 Expression expression_create_from_lexer_token(LexerToken*);
-Expression expression_clone(Expression*);
+Expression expression_create_from_shallow_ast_node(const ShallowASTNode*);
+Expression expression_clone(const Expression*);
 void expression_free(Expression*);
 
 ShallowASTNode shallow_ast_node_create_string_constant(char* string);
@@ -147,7 +152,7 @@ void shallow_ast_node_print(ShallowASTNode* node);
 void shallow_ast_node_array_print(ShallowASTNodeArray* array);
 ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array);
 void shallow_ast_node_array_free(ShallowASTNodeArray* array);
-ShallowASTNode* shallow_ast_node_deep_copy(ShallowASTNode*);
+ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode*);
 
 ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode*, size_t index);
 size_t shallow_ast_node_call_get_argument_count(ShallowASTNode*);
@@ -177,15 +182,20 @@ ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, S
 double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
 
 ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right);
+ShallowASTNode shallow_ast_node_create_addition_from_expressions(Expression left, Expression right);
 
 ShallowASTNode shallow_ast_node_create_subtraction(LexerToken* left, LexerToken* right);
+ShallowASTNode shallow_ast_node_create_subtraction_from_expressions(const Expression* left, const Expression* right);
 
 ShallowASTNodeArray shallow_ast_node_array_clone(ShallowASTNodeArray*);
 
 ShallowASTNode shallow_ast_node_create_create_object_property(LexerToken* identifier, LexerToken* value);
+ShallowASTNode shallow_ast_node_create_empty_create_object_property();
+void shallow_ast_node_create_object_property_set_identifier(ShallowASTNode*, const char* identifier);
 
 ShallowASTNode shallow_ast_node_create_create_object(ShallowASTNodeArray* tokens);
 
 ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens);
+
 
 #endif

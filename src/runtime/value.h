@@ -17,6 +17,7 @@ typedef struct Value {
     } value;
 } Value;
 
+Value value_create_from_double(double);
 Value value_clone(const Value*);
 void value_free(Value* value);
 
