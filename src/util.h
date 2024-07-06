@@ -5,7 +5,7 @@
 #include<assert.h>
 
 #define TODO(message) assert(0 && "Todo: " message)
-#define PANIC(message) assert(0 && "Panic: " message)
+#define PANIC(...) assert(0)
 
 
 bool is_letter(char character);
