@@ -1079,7 +1079,7 @@ char* shallow_ast_node_access_identifier_get_name(ShallowASTNode* node) {
     return node->data.AccessIdentifier.name;
 }
 
-double shallow_ast_node_number_constant_get_value(ShallowASTNode* node) {
+double shallow_ast_node_number_constant_get_value(const ShallowASTNode* node) {
     assert(node->type == ShallowASTNodeType_NumberConstant);
     return node->data.NumberConstant.number;
 }

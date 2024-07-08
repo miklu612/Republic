@@ -192,7 +192,7 @@ void shallow_ast_node_access_identifier_set_name(ShallowASTNode*, const char*);
 
 ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, ShallowASTNode* right, enum ConditionalCheckType type);
 
-double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
+double shallow_ast_node_number_constant_get_value(const ShallowASTNode*);
 void shallow_ast_node_number_constant_set_value(ShallowASTNode*, double number);
 
 ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right);

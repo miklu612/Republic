@@ -101,27 +101,6 @@ RuntimeVariable runtime_variable_create_object(const ASTNode* node) {
 
 }
 
-double get_number_from_runtime(Runtime* runtime, const ShallowASTNode* node) {
-    assert(runtime != NULL);
-
-    if(node->type == ShallowASTNodeType_AccessIdentifier) {
-        RuntimeVariable* runtime_variable = runtime_variable_array_get(
-            &runtime->variables,
-            node->data.AccessIdentifier.name
-        );
-        return runtime_variable->value.value.number;
-    }
-    else if(node->type == ShallowASTNodeType_AccessObjectMember) {
-        Value* value = runtime_get_object_property(runtime, node);
-        assert(value != NULL);
-        assert(value->type == ValueType_Number);
-        return value->value.number;
-    }
-    else {
-        PANIC();
-    }
-
-}
 
 RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNode* node) {
     assert(node != NULL);
@@ -143,8 +122,8 @@ RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNo
         );
 
         runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
-        double left = get_number_from_runtime(runtime, &expression->value.multitoken->nodes[0]);
-        double right = get_number_from_runtime(runtime, &expression->value.multitoken->nodes[2]);
+        double left = runtime_get_value_with_node(runtime, &expression->value.multitoken->nodes[0]);
+        double right = runtime_get_value_with_node(runtime, &expression->value.multitoken->nodes[2]);
 
         if(expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Plus) {
             variable.value.value.number = left + right;
@@ -162,7 +141,7 @@ RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNo
         RuntimeVariable variable = { 0 };
         variable.value.type = ValueType_Number;
         runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
-        variable.value.value.number = get_number_from_runtime(
+        variable.value.value.number = runtime_get_value_with_node(
             runtime,
             &expression->value.multitoken->nodes[0]
         );

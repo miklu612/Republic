@@ -5,6 +5,38 @@
 #include<stdio.h>
 #include<string.h>
 
+double runtime_get_value_with_node(Runtime* runtime, const ShallowASTNode* node) {
+    assert(runtime != NULL);
+
+    if(node->type == ShallowASTNodeType_AccessIdentifier) {
+        RuntimeVariable* runtime_variable = runtime_variable_array_get(
+            &runtime->variables,
+            node->data.AccessIdentifier.name
+        );
+        assert(runtime_variable != NULL);
+        return runtime_variable->value.value.number;
+    }
+    else if(node->type == ShallowASTNodeType_AccessObjectMember) {
+        Value* value = runtime_get_object_property(runtime, node);
+        assert(value != NULL);
+        assert(value->type == ValueType_Number);
+        return value->value.number;
+    }
+    else if(node->type == ShallowASTNodeType_NumberConstant) {
+        return shallow_ast_node_number_constant_get_value(node);
+    }
+    else {
+        fprintf(stderr, 
+            "Couldn't evaluate token\n"
+            "\tType: (ShallowASTNodeType) %d\n"
+            ,
+            node->type
+        );
+        PANIC();
+    }
+
+}
+
 RuntimeVariable* runtime_get_variable(Runtime* runtime, char* name) {
     RuntimeVariable* variable = runtime_variable_array_get(&runtime->variables, name);
     if(variable == NULL) {
@@ -19,7 +51,6 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
     if(object->type == ShallowASTNodeType_AccessObjectMember) {
         if(shallow_ast_node_access_object_member_compare_parent(object, "console")) {
             assert(shallow_ast_node_access_object_member_get_path_count(object) == 1);
-            //assert(shallow_ast_node_call_get_argument_count(call) == 1);
             const char* path = shallow_ast_node_access_object_member_get_path_part(object, 0);
             if(strcmp(path, "log") == 0) {
                 ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
@@ -48,21 +79,19 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
                 fprintf(stderr, "%d\n", call->data.Call.arguments.nodes[0].type);
                 fprintf(stderr, "%ld\n", call->data.Call.arguments.count);
                 assert(call->data.Call.arguments.count == 3);
-                assert(call->data.Call.arguments.nodes[0].type == ShallowASTNodeType_AccessIdentifier);
                 assert(call->data.Call.arguments.nodes[1].type == ShallowASTNodeType_DoubleEquals);
-                assert(call->data.Call.arguments.nodes[2].type == ShallowASTNodeType_NumberConstant);
 
-
-                const RuntimeVariable* variable = runtime_get_variable(
+                const double left = runtime_get_value_with_node(
                     runtime, 
-                    call->data.Call.arguments.nodes[0].data.AccessIdentifier.name
+                    &call->data.Call.arguments.nodes[0]
                 );
-                
-                const double value = call->data.Call.arguments.nodes[2].data.NumberConstant.number;
 
-                assert(variable != NULL);
-                assert(variable->value.type == ValueType_Number);
-                assert(variable->value.value.number == value);
+                const double right = runtime_get_value_with_node(
+                    runtime, 
+                    &call->data.Call.arguments.nodes[2]
+                );
+
+                assert(left == right);
 
             }
             else {
