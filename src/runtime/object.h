@@ -27,7 +27,7 @@ void object_property_array_free(ObjectPropertyArray*);
 Value* object_property_array_get(ObjectPropertyArray*, const char* name);
 
 void object_free(Object*);
-Object* object_create(ShallowASTNode*);
+Object* object_create(const ShallowASTNode*);
 void object_add_property(Object*, const char* name, const Value* value);
 Value* object_get_property(Object*, const char* name);
 

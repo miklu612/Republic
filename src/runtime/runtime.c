@@ -7,7 +7,10 @@
 
 RuntimeVariable* runtime_get_variable(Runtime* runtime, char* name) {
     RuntimeVariable* variable = runtime_variable_array_get(&runtime->variables, name);
-    assert(variable != NULL);
+    if(variable == NULL) {
+        fprintf(stderr, "Variable '%s' doesn't exist\n", name);
+        PANIC();
+    }
     return variable;
 }
 
@@ -16,7 +19,7 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
     if(object->type == ShallowASTNodeType_AccessObjectMember) {
         if(shallow_ast_node_access_object_member_compare_parent(object, "console")) {
             assert(shallow_ast_node_access_object_member_get_path_count(object) == 1);
-            assert(shallow_ast_node_call_get_argument_count(call) == 1);
+            //assert(shallow_ast_node_call_get_argument_count(call) == 1);
             const char* path = shallow_ast_node_access_object_member_get_path_part(object, 0);
             if(strcmp(path, "log") == 0) {
                 ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
@@ -41,26 +44,25 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
                 }
             }
             else if(strcmp(path, "assert") == 0) {
-                ShallowASTNode* arg = shallow_ast_node_call_get_argument(call, 0);
 
-                // First round of validations
-                assert(arg->type == ShallowASTNodeType_ConditionalCheck);
-                assert(arg->data.ConditionalCheck.type == ConditionalCheckType_Equals);
-                assert(arg->data.ConditionalCheck.left->type == ShallowASTNodeType_AccessIdentifier);
-                assert(arg->data.ConditionalCheck.right->type == ShallowASTNodeType_NumberConstant);
+                fprintf(stderr, "%d\n", call->data.Call.arguments.nodes[0].type);
+                fprintf(stderr, "%ld\n", call->data.Call.arguments.count);
+                assert(call->data.Call.arguments.count == 3);
+                assert(call->data.Call.arguments.nodes[0].type == ShallowASTNodeType_AccessIdentifier);
+                assert(call->data.Call.arguments.nodes[1].type == ShallowASTNodeType_DoubleEquals);
+                assert(call->data.Call.arguments.nodes[2].type == ShallowASTNodeType_NumberConstant);
 
-                char* name = arg->data.ConditionalCheck.left->data.AccessIdentifier.name;
-                const RuntimeVariable* variable = runtime_get_variable(runtime, name);
+
+                const RuntimeVariable* variable = runtime_get_variable(
+                    runtime, 
+                    call->data.Call.arguments.nodes[0].data.AccessIdentifier.name
+                );
+                
+                const double value = call->data.Call.arguments.nodes[2].data.NumberConstant.number;
+
                 assert(variable != NULL);
-
-                ShallowASTNode* node = arg->data.ConditionalCheck.right;
-                const double value = shallow_ast_node_number_constant_get_value(node);
-
                 assert(variable->value.type == ValueType_Number);
-                if(variable->value.value.number != value) {
-                    fprintf(stderr, "Assertion failed.\n");
-                    exit(-1);
-                }
+                assert(variable->value.value.number == value);
 
             }
             else {
@@ -78,13 +80,6 @@ void runtime_function_call(Runtime* runtime, ShallowASTNode* call, ShallowASTNod
     }
 }
 
-void runtime_create_const_variable(Runtime* runtime, ShallowASTNode* node) {
-    assert(node->type == ShallowASTNodeType_CreateConstVariable);
-    char* name = shallow_ast_node_create_const_variable_get_name(node);
-    (void) name;
-    (void) runtime;
-}
-
 
 void runtime_start(ASTNodeArray* array) {
     Runtime runtime = { 0 };
@@ -98,32 +93,34 @@ void runtime_start(ASTNodeArray* array) {
             runtime_function_call(&runtime, call, object);
         }
         else if(current->type == ASTNodeType_CreateConstVariable) {
-            char* name = ast_node_create_const_variable_get_name(current);
-            enum ExpressionType type = ast_node_create_const_variable_get_expression_type(
-                current
+            const char* name = ast_node_create_const_variable_get_name(current);
+            const Expression* expression = shallow_ast_node_create_const_variable_get_expression(
+                current->data.CreateConstVariable.node
             );
-            if(type == ExpressionType_Number) {
-                const double value = ast_node_create_const_variable_get_number(current);
-                RuntimeVariable runtime_variable = runtime_variable_create_number(name, value);
-                runtime_variable_array_push(&runtime.variables, &runtime_variable);
-            }
-            else if(type == ExpressionType_Multitoken) {
-                RuntimeVariable runtime_variable = runtime_variable_create_multitoken(
-                    shallow_ast_node_create_const_variable_multitoken_get_expression(
-                        current->data.CreateConstVariable.node
-                    ),
-                    &runtime
+            if(expression->type == ExpressionType_Number) {
+                const double value = expression_get_number(expression);
+                RuntimeVariable runtime_variable = runtime_variable_create_number(
+                    name,
+                    value
                 );
-                runtime_variable_set_name(&runtime_variable, name);
                 runtime_variable_array_push(&runtime.variables, &runtime_variable);
             }
-            else if(type == ExpressionType_Object) {
+            else if(expression->type == ExpressionType_Object) {
                 RuntimeVariable variable = runtime_variable_create_object(current);
                 runtime_variable_array_push(&runtime.variables, &variable);
             }
+            else if(expression->type == ExpressionType_Multitoken) {
+                RuntimeVariable variable = runtime_variable_create_multitoken(&runtime, current);
+                runtime_variable_array_push(&runtime.variables, &variable);
+            }
             else {
-                fprintf(stderr, "TODO: Add message\n");
-                PANIC("");
+                fprintf(stderr,
+                    "Unimplemented expression type\n"
+                    "Type: %d\n"
+                    ,
+                    expression->type
+                );
+                PANIC();
             }
 
         }
@@ -138,7 +135,7 @@ void runtime_start(ASTNodeArray* array) {
 
 }
 
-Value* runtime_get_object_property(Runtime* runtime, ShallowASTNode* path) {
+Value* runtime_get_object_property(Runtime* runtime, const ShallowASTNode* path) {
     assert(path->type == ShallowASTNodeType_AccessObjectMember);
     assert(shallow_ast_node_access_object_member_get_path_count(path) == 1);
     RuntimeVariable* var = runtime_variable_array_get(&runtime->variables, path->data.AccessObjectMember.object_name);

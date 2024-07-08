@@ -26,13 +26,13 @@ typedef struct {
 } RuntimeVariableArray;
 
 RuntimeVariable runtime_variable_create();
-RuntimeVariable runtime_variable_create_multitoken(ShallowASTNodeArray*, struct Runtime*);
-RuntimeVariable runtime_variable_create_number(char* name, double value);
-void runtime_variable_set_name(RuntimeVariable*, char* name);
+RuntimeVariable runtime_variable_create_number(const char* name, double value);
+void runtime_variable_set_name(RuntimeVariable*, const char* name);
 void runtime_variable_set_value_number(RuntimeVariable*, double value);
 void runtime_variable_free(RuntimeVariable*);
 
-RuntimeVariable runtime_variable_create_object(ASTNode* node);
+RuntimeVariable runtime_variable_create_object(const ASTNode* node);
+RuntimeVariable runtime_variable_create_multitoken(struct Runtime*, const ASTNode*);
 
 // Takes ownership
 void runtime_variable_array_push(RuntimeVariableArray*, RuntimeVariable*);

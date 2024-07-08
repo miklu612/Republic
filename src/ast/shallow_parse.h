@@ -3,6 +3,11 @@
 
 #include"../lexer/lexer.h"
 #include"../runtime/value.h"
+#include"../data_structures/string_array.h"
+
+
+// TODO: Add a Expression array for arguments.
+// TODO: Add a function to evaluate expressions.
 
 
 // ShallowASTNodeType_InvalidToken is not supposed to be used as a real token
@@ -22,10 +27,13 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_CreateObjectProperty,
     ShallowASTNodeType_CreateObject,
     ShallowASTNodeType_Comma,
+    ShallowASTNodeType_Plus,
+    ShallowASTNodeType_DoubleEquals,
+    ShallowASTNodeType_Minus,
 };
 
 enum ConditionalCheckType {
-    ConditionalCheckType_Equals
+    ConditionalCheckType_Equals,
 };
 
 enum ExpressionType {
@@ -45,6 +53,8 @@ typedef struct Expression {
         char* identifier;
         double number;
         struct ShallowASTNode* property_access;
+        struct ShallowASTNodeArray* multitoken;
+        struct ShallowASTNode* object;
     } value;
 } Expression;
 
@@ -64,13 +74,11 @@ typedef struct ShallowASTNode {
         //   {object_name}.{path_data[0]}.{path_data[1]}
         struct {
             char* object_name;
-            struct {
-                char** names;
-                size_t count;
-            } path_data;
+            StringArray path_data;
         } AccessObjectMember;
 
         struct {
+            // TODO: Change this into ShallowASTNodeArray
             struct {
                 struct ShallowASTNode* nodes;
                 size_t count;
@@ -83,12 +91,7 @@ typedef struct ShallowASTNode {
 
         struct {
             char* name;
-            enum ExpressionType type;
-            union {
-                double number;
-                struct ShallowASTNodeArray* multitoken;
-                struct ShallowASTNode* object;
-            } value;
+            Expression expression;
         } CreateConstVariable;
 
         struct {
@@ -135,14 +138,13 @@ typedef struct ShallowASTNodeArray {
 Expression expression_create_from_lexer_token(LexerToken*);
 Expression expression_create_from_shallow_ast_node(const ShallowASTNode*);
 Expression expression_clone(const Expression*);
+Expression expression_collect_multitoken(const LexerTokenArray* array, size_t* start_index);
+double expression_get_number(const Expression*);
 void expression_free(Expression*);
 
-ShallowASTNode shallow_ast_node_create_string_constant(char* string);
+
 void shallow_ast_node_free(ShallowASTNode* node);
 void shallow_ast_node_array_push(ShallowASTNodeArray* array, ShallowASTNode* node);
-void shallow_ast_node_access_object_member_add_to_path(ShallowASTNode* node, char* path);
-void shallow_ast_node_call_add_argument(ShallowASTNode* node, ShallowASTNode* argument);
-void shallow_ast_node_access_object_member_set_parent(ShallowASTNode* node, char* parent);
 ShallowASTNode shallow_ast_node_create_access_object_member(LexerToken* parent);
 ShallowASTNode parser_shallow_get_access_object_member(LexerTokenArray* array, size_t index);
 ShallowASTNode shallow_ast_node_create_call();
@@ -154,32 +156,44 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array);
 void shallow_ast_node_array_free(ShallowASTNodeArray* array);
 ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode*);
 
+// Call related functions
 ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode*, size_t index);
 size_t shallow_ast_node_call_get_argument_count(ShallowASTNode*);
+void shallow_ast_node_call_add_argument(ShallowASTNode* node, const ShallowASTNode* argument);
 
+// Access Object Member related functions
+ShallowASTNode shallow_ast_node_get_access_object_member(const LexerTokenArray* array, size_t* i);
 bool shallow_ast_node_access_object_member_compare_parent(ShallowASTNode*, char* identifier);
-size_t shallow_ast_node_access_object_member_get_path_count(ShallowASTNode*);
-char* shallow_ast_node_access_object_member_get_path_part(ShallowASTNode*, size_t index);
+size_t shallow_ast_node_access_object_member_get_path_count(const ShallowASTNode*);
+const char* shallow_ast_node_access_object_member_get_path_part(const ShallowASTNode*, size_t index);
+void shallow_ast_node_access_object_member_add_to_path(ShallowASTNode* node, const char* path);
+void shallow_ast_node_access_object_member_set_parent(ShallowASTNode* node, const char* parent);
 
 char* shallow_ast_node_string_constant_get_string(ShallowASTNode*);
 
-char* shallow_ast_node_create_const_variable_get_name(ShallowASTNode*);
-
+// Create Const Variable related functions
+const char* shallow_ast_node_create_const_variable_get_name(const ShallowASTNode*);
+void shallow_ast_node_create_const_variable_set_name(ShallowASTNode*, const char*);
 ShallowASTNode shallow_ast_node_create_create_const_variable_number(char* name, double value);
 ShallowASTNode shallow_ast_node_create_create_const_variable_multitoken(char* name);
 double shallow_ast_node_create_const_variable_number_get_value(ShallowASTNode*);
 void shallow_ast_create_const_variable_multitoken_push(ShallowASTNode*, ShallowASTNode*);
 enum ExpressionType shallow_ast_node_create_const_variable_get_expression_type(ShallowASTNode*);
-ShallowASTNodeArray* shallow_ast_node_create_const_variable_multitoken_get_expression(ShallowASTNode*);
+Expression shallow_ast_node_create_const_variable_multitoken_get_expression(ShallowASTNode*);
+void shallow_ast_node_create_const_variable_set_expression(ShallowASTNode*, const Expression*);
+const Expression* shallow_ast_node_create_const_variable_get_expression(const ShallowASTNode*);
+ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens);
 
 ShallowASTNode* shallow_ast_node_create_empty();
 
 ShallowASTNode shallow_ast_node_create_access_identifier(char* name);
 char* shallow_ast_node_access_identifier_get_name(ShallowASTNode*);
+void shallow_ast_node_access_identifier_set_name(ShallowASTNode*, const char*);
 
 ShallowASTNode shallow_ast_node_conditional_check_create(ShallowASTNode* left, ShallowASTNode* right, enum ConditionalCheckType type);
 
 double shallow_ast_node_number_constant_get_value(ShallowASTNode*);
+void shallow_ast_node_number_constant_set_value(ShallowASTNode*, double number);
 
 ShallowASTNode shallow_ast_node_create_addition(LexerToken* left, LexerToken* right);
 ShallowASTNode shallow_ast_node_create_addition_from_expressions(Expression left, Expression right);
@@ -187,7 +201,7 @@ ShallowASTNode shallow_ast_node_create_addition_from_expressions(Expression left
 ShallowASTNode shallow_ast_node_create_subtraction(LexerToken* left, LexerToken* right);
 ShallowASTNode shallow_ast_node_create_subtraction_from_expressions(const Expression* left, const Expression* right);
 
-ShallowASTNodeArray shallow_ast_node_array_clone(ShallowASTNodeArray*);
+ShallowASTNodeArray shallow_ast_node_array_clone(const ShallowASTNodeArray*);
 
 ShallowASTNode shallow_ast_node_create_create_object_property(LexerToken* identifier, LexerToken* value);
 ShallowASTNode shallow_ast_node_create_empty_create_object_property();
@@ -195,7 +209,10 @@ void shallow_ast_node_create_object_property_set_identifier(ShallowASTNode*, con
 
 ShallowASTNode shallow_ast_node_create_create_object(ShallowASTNodeArray* tokens);
 
-ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens);
 
+void shallow_ast_node_set_type(ShallowASTNode*, enum ShallowASTNodeType);
+
+ShallowASTNode shallow_ast_node_create_string_constant(char* string);
+void shallow_ast_node_string_constant_set(ShallowASTNode*, const char* string);
 
 #endif

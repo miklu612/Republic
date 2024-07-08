@@ -78,9 +78,12 @@ ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) 
 		}
                 else {
                     fprintf(stderr,
-                        "Todo: Add message\n"
+                        "Unknown type in AccessObjectMember\n"
+                        "Type: %d\n"
+                        ,
+                        next_node->type
                     );
-                    PANIC("");
+                    PANIC();
                 }
 	    }
             else {

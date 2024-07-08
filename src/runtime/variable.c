@@ -6,7 +6,7 @@
 #include<stdio.h>
 #include<string.h>
 
-void runtime_variable_set_name(RuntimeVariable* variable, char* name) {
+void runtime_variable_set_name(RuntimeVariable* variable, const char* name) {
     variable->name = clone_string(name);
 }
 
@@ -19,7 +19,7 @@ RuntimeVariable runtime_variable_create() {
     return (RuntimeVariable) { 0 };
 }
 
-RuntimeVariable runtime_variable_create_number(char* name, double value) {
+RuntimeVariable runtime_variable_create_number(const char* name, double value) {
     RuntimeVariable var = runtime_variable_create();
     runtime_variable_set_name(&var, name);
     runtime_variable_set_value_number(&var, value);
@@ -81,97 +81,96 @@ RuntimeVariable* runtime_variable_array_get(RuntimeVariableArray* array, char* n
     return NULL;
 }
 
-RuntimeVariable runtime_variable_create_multitoken(ShallowASTNodeArray* array, Runtime* runtime) {
-    (void) runtime;
-    RuntimeVariable variable = { 0 };
-    variable.value.type = ValueType_Number;
-    for(size_t i = 0 ; i < array->count ; i++) {
-        if(array->nodes[i].type == ShallowASTNodeType_Addition) {
-            double left_value = 0;
-            double right_value = 0;
-            if(array->nodes[i].data.Addition.left.type == ExpressionType_Identifier) {
-                RuntimeVariable* variable = runtime_variable_array_get(
-                    &runtime->variables, 
-                    array->nodes[i].data.Addition.left.value.identifier
-                );
-                assert(variable != NULL);
-                assert(variable->value.type == ValueType_Number);
-                left_value = variable->value.value.number;
-            }
-            else if(array->nodes[i].data.Addition.left.type == ExpressionType_Number) {
-                left_value = array->nodes[i].data.Addition.left.value.number;
-            }
-            if(array->nodes[i].data.Addition.right.type == ExpressionType_Identifier) {
-                RuntimeVariable* variable = runtime_variable_array_get(
-                    &runtime->variables, 
-                    array->nodes[i].data.Addition.right.value.identifier
-                );
-                assert(variable != NULL);
-                assert(variable->value.type == ValueType_Number);
-                right_value = variable->value.value.number;
-            }
-            else if(array->nodes[i].data.Addition.right.type == ExpressionType_Number) {
-                right_value = array->nodes[i].data.Addition.left.value.number;
-            }
-            variable.value.value.number = left_value + right_value;
-        }
-        else if(array->nodes[i].type == ShallowASTNodeType_Subtraction) {
-            double left_value = 0;
-            double right_value = 0;
-            if(array->nodes[i].data.Addition.left.type == ExpressionType_Identifier) {
-                RuntimeVariable* variable = runtime_variable_array_get(
-                    &runtime->variables, 
-                    array->nodes[i].data.Addition.left.value.identifier
-                );
-                assert(variable != NULL);
-                assert(variable->value.type == ValueType_Number);
-                left_value = variable->value.value.number;
-            }
-            else if(array->nodes[i].data.Addition.left.type == ExpressionType_Number) {
-                left_value = array->nodes[i].data.Addition.left.value.number;
-            }
-            if(array->nodes[i].data.Addition.right.type == ExpressionType_Identifier) {
-                RuntimeVariable* variable = runtime_variable_array_get(
-                    &runtime->variables, 
-                    array->nodes[i].data.Addition.right.value.identifier
-                );
-                assert(variable != NULL);
-                assert(variable->value.type == ValueType_Number);
-                right_value = variable->value.value.number;
-            }
-            else if(array->nodes[i].data.Addition.right.type == ExpressionType_Number) {
-                right_value = array->nodes[i].data.Addition.left.value.number;
-            }
-            variable.value.value.number = left_value - right_value;
-        }
-        else if(array->nodes[i].type == ShallowASTNodeType_AccessObjectMember) {
-            const Value* value = runtime_get_object_property(runtime, &array->nodes[i]);
-            variable.value = value_clone(value);
-        }
-        else {
-            fprintf(stderr, "Couldn't create multitoken\n");
-            PANIC("");
-        }
-    }
-    return variable;
-}
 
-RuntimeVariable runtime_variable_create_object(ASTNode* node) {
+RuntimeVariable runtime_variable_create_object(const ASTNode* node) {
 
     assert(node != NULL);
     assert(node->type == ASTNodeType_CreateConstVariable);
 
-    ShallowASTNode* shallow_node = node->data.CreateConstVariable.node;
+    const ShallowASTNode* shallow_node = node->data.CreateConstVariable.node;
     assert(shallow_node != NULL);
     assert(shallow_node->type == ShallowASTNodeType_CreateConstVariable);
-    assert(shallow_node->data.CreateConstVariable.type == ExpressionType_Object);
+    assert(shallow_node->data.CreateConstVariable.expression.type == ExpressionType_Object);
 
     RuntimeVariable variable = { 0 };
     variable.value.type = ValueType_Object;
-    variable.value.value.object = object_create(shallow_node->data.CreateConstVariable.value.object);
+    variable.value.value.object = object_create(shallow_node->data.CreateConstVariable.expression.value.object);
     variable.name = clone_string(ast_node_create_const_variable_get_name(node));
 
     return variable;
 
 }
 
+double get_number_from_runtime(Runtime* runtime, const ShallowASTNode* node) {
+    assert(runtime != NULL);
+
+    if(node->type == ShallowASTNodeType_AccessIdentifier) {
+        RuntimeVariable* runtime_variable = runtime_variable_array_get(
+            &runtime->variables,
+            node->data.AccessIdentifier.name
+        );
+        return runtime_variable->value.value.number;
+    }
+    else if(node->type == ShallowASTNodeType_AccessObjectMember) {
+        Value* value = runtime_get_object_property(runtime, node);
+        assert(value != NULL);
+        assert(value->type == ValueType_Number);
+        return value->value.number;
+    }
+    else {
+        PANIC();
+    }
+
+}
+
+RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNode* node) {
+    assert(node != NULL);
+    assert(node->type == ASTNodeType_CreateConstVariable);
+
+
+    const ShallowASTNode* s_node = node->data.CreateConstVariable.node;
+    assert(s_node->type == ShallowASTNodeType_CreateConstVariable);
+    const Expression* expression = &s_node->data.CreateConstVariable.expression;
+    assert(expression->type == ExpressionType_Multitoken);
+
+    if(expression->value.multitoken->count == 3) {
+        RuntimeVariable variable = { 0 };
+        variable.value.type = ValueType_Number;
+        assert(expression->value.multitoken->count == 3);
+        assert(
+            expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Plus ||
+            expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Minus
+        );
+
+        runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
+        double left = get_number_from_runtime(runtime, &expression->value.multitoken->nodes[0]);
+        double right = get_number_from_runtime(runtime, &expression->value.multitoken->nodes[2]);
+
+        if(expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Plus) {
+            variable.value.value.number = left + right;
+        }
+        else if(expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Minus) {
+            variable.value.value.number = left - right;
+        }
+        else {
+            PANIC();
+        }
+        return variable;
+    }
+    else if(expression->value.multitoken->count == 1) {
+        assert(expression->value.multitoken->nodes[0].type == ShallowASTNodeType_AccessObjectMember);
+        RuntimeVariable variable = { 0 };
+        variable.value.type = ValueType_Number;
+        runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
+        variable.value.value.number = get_number_from_runtime(
+            runtime,
+            &expression->value.multitoken->nodes[0]
+        );
+        return variable;
+    }
+    else {
+        PANIC();
+    }
+
+
+}

@@ -11,6 +11,6 @@ typedef struct Runtime {
 } Runtime;
 
 void runtime_start(ASTNodeArray*);
-Value* runtime_get_object_property(Runtime*, ShallowASTNode* path);
+Value* runtime_get_object_property(Runtime*, const ShallowASTNode* path);
 
 #endif

@@ -43,19 +43,13 @@ void ast_node_array_print(ASTNodeArray* array) {
     }
 }
 
-char* ast_node_create_const_variable_get_name(ASTNode* node) {
+const char* ast_node_create_const_variable_get_name(const ASTNode* node) {
     assert(node->type == ASTNodeType_CreateConstVariable);
     return shallow_ast_node_create_const_variable_get_name(node->data.CreateConstVariable.node);
 }
 
 double ast_node_create_const_variable_get_number(ASTNode* node) {
     assert(node->type == ASTNodeType_CreateConstVariable);
-    return shallow_ast_node_create_const_variable_number_get_value(node->data.CreateConstVariable.node);
+    return expression_get_number(&node->data.CreateConstVariable.node->data.CreateConstVariable.expression);
 }
 
-enum ExpressionType ast_node_create_const_variable_get_expression_type(ASTNode* node) {
-    assert(node->type == ASTNodeType_CreateConstVariable);
-    return shallow_ast_node_create_const_variable_get_expression_type(
-        node->data.CreateConstVariable.node
-    );
-}

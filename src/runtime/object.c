@@ -34,7 +34,7 @@ void object_add_property(Object* object, const char* name, const Value* value) {
     object_property_array_push(&object->properties, name, value);
 }
 
-Object* object_create(ShallowASTNode* node) {
+Object* object_create(const ShallowASTNode* node) {
 
     assert(node != NULL);
 
