@@ -184,8 +184,6 @@ void shallow_ast_node_create_const_variable_set_expression(ShallowASTNode*, cons
 const Expression* shallow_ast_node_create_const_variable_get_expression(const ShallowASTNode*);
 ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, ShallowASTNodeArray* tokens);
 
-ShallowASTNode* shallow_ast_node_create_empty();
-
 ShallowASTNode shallow_ast_node_create_access_identifier(char* name);
 char* shallow_ast_node_access_identifier_get_name(ShallowASTNode*);
 void shallow_ast_node_access_identifier_set_name(ShallowASTNode*, const char*);

@@ -59,11 +59,6 @@ ShallowASTNode shallow_ast_node_create_from_lexer_token(LexerToken* token) {
     return (ShallowASTNode) { 0 };
 }
 
-ShallowASTNode* shallow_ast_node_create_empty() {
-    ShallowASTNode* node = calloc(1, sizeof(ShallowASTNode));
-    assert(node != NULL);
-    return node;
-}
 
 // This does not take ownership
 ShallowASTNode shallow_ast_node_create_string_constant(char* string) {
