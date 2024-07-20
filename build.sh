@@ -16,6 +16,8 @@ gcc $flags -c -o build/runtime.o src/runtime/runtime.c
 gcc $flags -c -o build/variable.o src/runtime/variable.c
 gcc $flags -c -o build/object.o src/runtime/object.c
 gcc $flags -c -o build/value.o src/runtime/value.c
+gcc $flags -c -o build/scope.o src/runtime/scope.c
+gcc $flags -c -o build/function.o src/runtime/function.c
 gcc $flags -c -o build/string_array.o src/data_structures/string_array.c
 gcc $flags -o build/js build/*.o src/main.c
 

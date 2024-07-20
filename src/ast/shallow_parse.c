@@ -4,6 +4,7 @@
 
 #include<stddef.h>
 #include<stdio.h>
+#include<stdint.h>
 #include<string.h>
 #include<assert.h>
 
@@ -144,7 +145,12 @@ void shallow_ast_node_free(ShallowASTNode* node) {
             node->data.CreateObject.tokens
         );
         free(node->data.CreateObject.tokens);
-        //free(node->data.CreateObjectProperty.identifier);
+    }
+    else if(node->type == ShallowASTNodeType_FunctionDeclaration) {
+        free(node->data.FunctionDeclaration.identifier);
+        string_array_free(&node->data.FunctionDeclaration.arguments);
+        shallow_ast_node_array_free(node->data.FunctionDeclaration.body);
+        free(node->data.FunctionDeclaration.body);
     }
     else {
         fprintf(stderr, "State: %d\n", node->type);
@@ -283,7 +289,6 @@ ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
                     &output,
                     &object_access
                 );
-                //shallow_ast_node_free(&object_access);
             }
             else {
                 ShallowASTNode identifier = { 0 };
@@ -618,6 +623,150 @@ ShallowASTNode shallow_ast_node_create_create_const_variable_object(char* name, 
     return output;
 }
 
+void shallow_ast_node_function_declaration_set_identifier(ShallowASTNode* node, const char* identifier) {
+
+    assert(node != NULL);
+    assert(node->type == ShallowASTNodeType_FunctionDeclaration);
+    assert(node->data.FunctionDeclaration.identifier == NULL);
+    assert(identifier != NULL);
+
+    node->data.FunctionDeclaration.identifier = clone_string(identifier);
+
+}
+
+void shallow_ast_node_function_declaration_set_arguments(ShallowASTNode* node, const StringArray* array) {
+
+    assert(node != NULL);
+    assert(node->type == ShallowASTNodeType_FunctionDeclaration);
+    assert(array != NULL);
+
+    node->data.FunctionDeclaration.arguments = string_array_clone(array);
+    
+}
+
+// Index must be at the function keyword token
+// TODO: Add argument handling
+ShallowASTNode shallow_ast_node_parse_function_declaration(const LexerTokenArray* array, size_t* index) {
+
+    // Verify as much as we can before trying to parse the declaration.
+    assert(array != NULL);
+    assert(index != NULL);
+    assert(array->tokens[*index].type == LexerTokenType_KeywordFunction);
+    assert(array->tokens[(*index)+1].type == LexerTokenType_Identifier);
+    assert(array->tokens[(*index)+2].type == LexerTokenType_ParenStart);
+    
+    ShallowASTNode output = { 0 };
+    shallow_ast_node_set_type(
+        &output, 
+        ShallowASTNodeType_FunctionDeclaration
+    );
+    
+    shallow_ast_node_function_declaration_set_identifier(
+        &output,
+        array->tokens[(*index)+1].raw
+    );
+
+    // Find the parts of the function. SIZE_MAX is a placeholder value, so if
+    // they are SIZE_MAX at the end of the query, then we should panic.
+    size_t argument_start = SIZE_MAX;
+    size_t argument_end = SIZE_MAX;
+    size_t body_start = SIZE_MAX;
+    size_t body_end = SIZE_MAX;
+
+    size_t scope_depth = 0;
+
+
+    for(size_t i = (*index)+2 ; i < array->count ; i++) {
+        if(argument_start == SIZE_MAX) {
+            assert(array->tokens[i].type == LexerTokenType_ParenStart);
+            assert(
+                array->tokens[i+1].type == LexerTokenType_Identifier ||
+                array->tokens[i+1].type == LexerTokenType_ParenEnd
+            );
+            argument_start = i;
+        }
+        else if(argument_end == SIZE_MAX) {
+            if(array->tokens[i].type == LexerTokenType_ParenEnd) {
+                argument_end = i;
+            }
+            else if(array->tokens[i].type != LexerTokenType_Identifier) {
+                fprintf(stderr,
+                    "Found unsupported token in function declaration\n"
+                    "This token could be a comma, since multiple\n"
+                    "arguments are not supported yet.\n"
+                );
+                PANIC();
+            }
+        }
+        else if(body_start == SIZE_MAX) {
+            assert(array->tokens[i].type == LexerTokenType_CurlyBracketStart);
+            scope_depth = 1;
+            body_start = i;
+        }
+        else if(body_end == SIZE_MAX) {
+            if(array->tokens[i].type == LexerTokenType_CurlyBracketStart) {
+                scope_depth += 1;
+            }
+            else if(array->tokens[i].type == LexerTokenType_CurlyBracketEnd) {
+                scope_depth -= 1;
+                if(scope_depth == 0) {
+                    body_end = i;
+                }
+            }
+        }
+        else {
+            break;
+        }
+    }
+
+    assert(argument_start != SIZE_MAX);
+    assert(argument_end != SIZE_MAX);
+    assert(body_start != SIZE_MAX);
+    assert(body_end != SIZE_MAX);
+
+    // Collect the argument names
+    StringArray arguments = { 0 };
+    for(size_t i = argument_start + 1 ; i < argument_end ; i++) {
+        assert(array->tokens[i].type == LexerTokenType_Identifier);
+        string_array_push(&arguments, array->tokens[i].raw);
+    }
+    shallow_ast_node_function_declaration_set_arguments(
+        &output,
+        &arguments
+    );
+    string_array_free(&arguments);
+    
+    // Collect the function body
+    LexerTokenArray function_body = { 0 };
+    for(size_t i = body_start+1 ; i < body_end ; i++) {
+        LexerToken token = lexer_token_clone(&array->tokens[i]);
+        lexer_token_array_push(
+            &function_body,
+            &token
+        );
+    }
+    ShallowASTNodeArray function_body_parsed = parse_shallow_parse(&function_body);
+    shallow_ast_node_function_declaration_set_body(&output, &function_body_parsed);
+    shallow_ast_node_array_free(&function_body_parsed);
+    lexer_token_array_free(&function_body);
+
+    // Update the parser index
+    *index = body_end;
+
+    
+    return output;
+
+}
+
+void shallow_ast_node_function_declaration_set_body(ShallowASTNode* node, const ShallowASTNodeArray* body) {
+    assert(node != NULL);
+    assert(body != NULL);
+    assert(node->type == ShallowASTNodeType_FunctionDeclaration);
+    node->data.FunctionDeclaration.body = calloc(1, sizeof(ShallowASTNodeArray));
+    assert(node->data.FunctionDeclaration.body != NULL);
+    *node->data.FunctionDeclaration.body = shallow_ast_node_array_clone(body);
+}
+
 ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
     ShallowASTNodeArray array = { 0 };
 
@@ -630,7 +779,6 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
                     lexer_token_array,
                     &i
                 );
-                //i += identifier.data.AccessObjectMember.path_data.count * 2;
             }
             else {
                 identifier = shallow_ast_node_create_access_identifier(
@@ -697,10 +845,14 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
                     i += 1;
                 }
                 else {
+                    if(identifier.type == ShallowASTNodeType_AccessIdentifier) {
+                        i -= 1;
+                    }
                     shallow_ast_node_array_push(&array, &identifier);
                 }
             }
             else {
+                i -= 1;
                 shallow_ast_node_array_push(&array, &identifier);
             }
         }
@@ -833,8 +985,16 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
             shallow_ast_node_set_type(&node, ShallowASTNodeType_Minus);
             shallow_ast_node_array_push(&array, &node);
         }
+        else if(lexer_token_array->tokens[i].type == LexerTokenType_KeywordFunction) {
+            ShallowASTNode node = shallow_ast_node_parse_function_declaration(
+                lexer_token_array,
+                &i
+            );
+            shallow_ast_node_array_push(&array, &node);
+        }
         else {
             fprintf(stderr,
+                "Unexpected token found\n"
                 "Token:\n"
                 "\tType: %d\n"
                 "\tRaw: %s\n"
@@ -845,7 +1005,7 @@ ShallowASTNodeArray parse_shallow_parse(LexerTokenArray* lexer_token_array) {
                 lexer_token_array->tokens[i].raw,
                 i
             );
-            PANIC("NOT IMPLEMENTED");
+            PANIC();
         }
     }
 
@@ -884,7 +1044,6 @@ ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode* node) {
             ShallowASTNode* child = shallow_ast_node_deep_copy(&node->data.Call.arguments.nodes[i]);
             shallow_ast_node_call_add_argument(output, child);
             free(child);
-            
         }
         return output;
     }
@@ -1020,6 +1179,23 @@ ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode* node) {
     else if(node->type == ShallowASTNodeType_DoubleEquals) {
         ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
         shallow_ast_node_set_type(output, ShallowASTNodeType_DoubleEquals);
+        return output;
+    }
+    else if(node->type == ShallowASTNodeType_FunctionDeclaration) {
+        ShallowASTNode* output = calloc(1, sizeof(ShallowASTNode));
+        shallow_ast_node_set_type(output, ShallowASTNodeType_FunctionDeclaration);
+        shallow_ast_node_function_declaration_set_identifier(
+            output, 
+            node->data.FunctionDeclaration.identifier
+        );
+        shallow_ast_node_function_declaration_set_body(
+            output, 
+            node->data.FunctionDeclaration.body
+        );
+        shallow_ast_node_function_declaration_set_arguments(
+            output, 
+            &node->data.FunctionDeclaration.arguments
+        );
         return output;
     }
     else {

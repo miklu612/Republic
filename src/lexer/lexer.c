@@ -112,10 +112,13 @@ bool is_keyword(char* string) {
 
 enum LexerTokenType get_identifier_type(char* string) {
     if(strcmp(string, "const") == 0) {
-    return LexerTokenType_KeywordConst;
+        return LexerTokenType_KeywordConst;
+    }
+    else if(strcmp(string, "function") == 0) {
+        return LexerTokenType_KeywordFunction;
     }
     else {
-    return LexerTokenType_Identifier;
+        return LexerTokenType_Identifier;
     }
 }
 
@@ -164,8 +167,8 @@ enum LexerTokenType identify_token_type(char* token) {
         }
     }
     fprintf(stderr, "Couldn't indentify token: '%s'\n", token);
-    PANIC("Couldn't identify token");
-    return LexerTokenType_Keyword;
+    PANIC();
+    return LexerTokenType_InvalidToken;
 }
 
 void lexer_token_set_raw(LexerToken* token, char* raw_token) {

@@ -3,11 +3,12 @@
 
 #include"../ast/ast.h"
 #include"variable.h"
+#include"scope.h"
 
 
 typedef struct Runtime {
     char buffer;
-    RuntimeVariableArray variables;
+    RuntimeScope global_scope;
 } Runtime;
 
 void runtime_start(ASTNodeArray*);

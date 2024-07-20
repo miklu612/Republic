@@ -30,6 +30,7 @@ enum ShallowASTNodeType {
     ShallowASTNodeType_Plus,
     ShallowASTNodeType_DoubleEquals,
     ShallowASTNodeType_Minus,
+    ShallowASTNodeType_FunctionDeclaration,
 };
 
 enum ConditionalCheckType {
@@ -127,6 +128,12 @@ typedef struct ShallowASTNode {
             Value value;
         } CreateObjectProperty;
 
+        struct {
+            char* identifier;
+            StringArray arguments;
+            struct ShallowASTNodeArray* body;
+        } FunctionDeclaration;
+
     } data;
 } ShallowASTNode;
 
@@ -212,5 +219,9 @@ void shallow_ast_node_set_type(ShallowASTNode*, enum ShallowASTNodeType);
 
 ShallowASTNode shallow_ast_node_create_string_constant(char* string);
 void shallow_ast_node_string_constant_set(ShallowASTNode*, const char* string);
+
+void shallow_ast_node_function_declaration_set_identifier(ShallowASTNode*, const char*);
+void shallow_ast_node_function_declaration_set_body(ShallowASTNode*, const ShallowASTNodeArray*);
+void shallow_ast_node_function_declaration_set_arguments(ShallowASTNode*, const StringArray*);
 
 #endif

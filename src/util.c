@@ -29,3 +29,24 @@ char* clone_string(const char* text_to_copy) {
     memcpy(output, text_to_copy, strlen(text_to_copy));
     return output;
 }
+
+void generic_push(void** ptr, size_t* ptr_count, size_t element_size, void* element) {
+
+    assert(ptr != NULL);
+    assert(ptr_count != NULL);
+    assert(element_size > 0);
+    assert(element != NULL);
+
+    if(*ptr == NULL) {
+        *ptr = calloc(1, element_size);
+        *ptr_count = 0;
+    }
+    else {
+        *ptr = realloc(*ptr, element_size * *ptr_count);
+    }
+
+
+    memcpy(ptr[*ptr_count], element, element_size);
+    *ptr_count += 1;
+
+}

@@ -5,7 +5,7 @@
 #include<stdbool.h>
 
 enum LexerTokenType {
-    LexerTokenType_Keyword,
+    LexerTokenType_InvalidToken,
     LexerTokenType_Dot,
     LexerTokenType_ParenStart,
     LexerTokenType_ParenEnd,
@@ -19,6 +19,7 @@ enum LexerTokenType {
     LexerTokenType_NumberConstant,
     LexerTokenType_Newline,
     LexerTokenType_KeywordConst,
+    LexerTokenType_KeywordFunction,
     LexerTokenType_Plus,
     LexerTokenType_Minus,
     LexerTokenType_Colon,

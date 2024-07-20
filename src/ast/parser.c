@@ -21,7 +21,7 @@
 
 void ast_node_array_free(ASTNodeArray* array) {
     for(size_t i = 0 ; i < array->count ; i++) {
-	ast_node_free(&array->nodes[i]);
+    ast_node_free(&array->nodes[i]);
     }
     free(array->nodes);
 }
@@ -46,36 +46,41 @@ ASTNode ast_node_create_create_const_variable(ShallowASTNode* node) {
 
 void ast_node_array_push(ASTNodeArray* array, ASTNode* node) {
     if(array->nodes == NULL) {
-	array->nodes = malloc(sizeof(ASTNode));
-	array->count = 0;
+        array->nodes = malloc(sizeof(ASTNode));
+        array->count = 0;
     }
     else {
-	array->nodes = realloc(array->nodes, (array->count+1) * sizeof(ASTNode));
+        array->nodes = realloc(array->nodes, (array->count+1) * sizeof(ASTNode));
     }
     array->nodes[array->count] = *node;
     array->count += 1;
 }
 
 
-
 ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) {
-
     ShallowASTNodeArray shallow_array = parse_shallow_parse(lexer_token_array);
+    ASTNodeArray output = parser_parse_shallow_ast_node_array(&shallow_array);
+    shallow_ast_node_array_free(&shallow_array);
+    return output;
+}
+
+ASTNodeArray parser_parse_shallow_ast_node_array(const ShallowASTNodeArray* shallow_array) {
+
     ASTNodeArray ast_node_array = { 0 };
 
-    for(size_t i = 0 ; i < shallow_array.count ; i++) {
-	ShallowASTNode* c_node = &shallow_array.nodes[i];
-	if(c_node->type == ShallowASTNodeType_AccessObjectMember) {
-	    if(i+1 < shallow_array.count) {
-		ShallowASTNode* next_node = &shallow_array.nodes[i+1];
-		if(next_node->type == ShallowASTNodeType_Call) {
-		    ASTNode node = ast_node_create_function_call(
-			c_node,
-			next_node
-		    );
-		    ast_node_array_push(&ast_node_array, &node);
-		    i += 1;
-		}
+    for(size_t i = 0 ; i < shallow_array->count ; i++) {
+        ShallowASTNode* c_node = &shallow_array->nodes[i];
+        if(c_node->type == ShallowASTNodeType_AccessObjectMember) {
+            if(i+1 < shallow_array->count) {
+                ShallowASTNode* next_node = &shallow_array->nodes[i+1];
+                if(next_node->type == ShallowASTNodeType_Call) {
+                    ASTNode node = ast_node_create_function_call(
+                        c_node,
+                        next_node
+                    );
+                    ast_node_array_push(&ast_node_array, &node);
+                    i += 1;
+                }
                 else {
                     fprintf(stderr,
                         "Unknown type in AccessObjectMember\n"
@@ -85,36 +90,63 @@ ASTNodeArray parser_parse_lexer_token_array(LexerTokenArray* lexer_token_array) 
                     );
                     PANIC();
                 }
-	    }
+            }
             else {
                 fprintf(stderr,
                     "Todo: Add message\n"
                 );
                 PANIC("");
             }
-	}
+        }
+        else if(c_node->type == ShallowASTNodeType_AccessIdentifier) {
+            assert(shallow_array->nodes[i+1].type == ShallowASTNodeType_Call);
+            ASTNode node = ast_node_create_function_call(
+                &shallow_array->nodes[i],
+                &shallow_array->nodes[i+1]
+            );
+            ast_node_array_push(&ast_node_array, &node);
+            i += 1;
+        }
         else if(c_node->type == ShallowASTNodeType_CreateConstVariable) {
-            ASTNode node = ast_node_create_create_const_variable(&shallow_array.nodes[i]);
+            ASTNode node = ast_node_create_create_const_variable(&shallow_array->nodes[i]);
+            ast_node_array_push(&ast_node_array, &node);
+        }
+        else if(c_node->type == ShallowASTNodeType_FunctionDeclaration) {
+            ASTNode node = { 0 };
+            node.type = ASTNodeType_FunctionDeclaration;
+            node.data.FunctionDeclaration.identifier = clone_string(
+                c_node->data.FunctionDeclaration.identifier
+            );
+            node.data.FunctionDeclaration.arguments = string_array_clone(
+                &c_node->data.FunctionDeclaration.arguments
+            );
+            node.data.FunctionDeclaration.body = calloc(1, sizeof(ASTNodeArray));
+            *node.data.FunctionDeclaration.body = parser_parse_shallow_ast_node_array(
+                c_node->data.FunctionDeclaration.body
+            );
+            //node.data.FunctionDeclaration.declaration = shallow_ast_node_deep_copy(
+            //    c_node
+            //);
             ast_node_array_push(&ast_node_array, &node);
         }
         else if(c_node->type == ShallowASTNodeType_CreateObject) {
             printf("Invalid state\n");
         }
-	else if(c_node->type == ShallowASTNodeType_Semicolon) {
-	    printf("Semicolons not supported.\n");
-	}
-	else {
-	    fprintf(stderr,
-		"Failure:\n"
-		"\tType: %d\n",
-		c_node->type
-	    );
-	    PANIC("Parsing error");
-	}
+        else if(c_node->type == ShallowASTNodeType_Semicolon) {
+            printf("Semicolons not supported.\n");
+        }
+        else {
+            fprintf(stderr,
+                "Failure:\n"
+                "\tType: %d\n",
+                c_node->type
+            );
+            PANIC("Parsing error");
+        }
     }
 
-    shallow_ast_node_array_print(&shallow_array);
-    shallow_ast_node_array_free(&shallow_array);
+    //shallow_ast_node_array_print(&shallow_array);
+    //shallow_ast_node_array_free(&shallow_array);
 
 
     return ast_node_array;

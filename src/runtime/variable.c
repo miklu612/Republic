@@ -1,6 +1,7 @@
 
 #include"runtime.h"
 #include"variable.h"
+#include"scope.h"
 #include"../util.h"
 
 #include<stdio.h>
@@ -72,7 +73,7 @@ void runtime_variable_array_log_variables(RuntimeVariableArray* array) {
     }
 }
 
-RuntimeVariable* runtime_variable_array_get(RuntimeVariableArray* array, char* name) {
+RuntimeVariable* runtime_variable_array_get(RuntimeVariableArray* array, const char* name) {
     for(size_t i = 0 ; i < array->count ; i++)  {
         if(strcmp(array->variables[i].name, name) == 0) {
             return &array->variables[i];
@@ -102,10 +103,10 @@ RuntimeVariable runtime_variable_create_object(const ASTNode* node) {
 }
 
 
-RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNode* node) {
+RuntimeVariable runtime_variable_create_multitoken(RuntimeScope* runtime, const ASTNode* node) {
+
     assert(node != NULL);
     assert(node->type == ASTNodeType_CreateConstVariable);
-
 
     const ShallowASTNode* s_node = node->data.CreateConstVariable.node;
     assert(s_node->type == ShallowASTNodeType_CreateConstVariable);
@@ -122,8 +123,12 @@ RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNo
         );
 
         runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
-        double left = runtime_get_value_with_node(runtime, &expression->value.multitoken->nodes[0]);
-        double right = runtime_get_value_with_node(runtime, &expression->value.multitoken->nodes[2]);
+
+        Value v_left = runtime_scope_get_value(runtime, &expression->value.multitoken->nodes[0]);
+        Value v_right = runtime_scope_get_value(runtime, &expression->value.multitoken->nodes[2]);
+
+        double left = value_get_number(&v_left);
+        double right = value_get_number(&v_right);
 
         if(expression->value.multitoken->nodes[1].type == ShallowASTNodeType_Plus) {
             variable.value.value.number = left + right;
@@ -141,10 +146,11 @@ RuntimeVariable runtime_variable_create_multitoken(Runtime* runtime, const ASTNo
         RuntimeVariable variable = { 0 };
         variable.value.type = ValueType_Number;
         runtime_variable_set_name(&variable, s_node->data.CreateConstVariable.name);
-        variable.value.value.number = runtime_get_value_with_node(
+        Value value = runtime_scope_get_value(
             runtime,
             &expression->value.multitoken->nodes[0]
         );
+        variable.value.value.number = value_get_number(&value);
         return variable;
     }
     else {

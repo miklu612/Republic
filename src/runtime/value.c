@@ -39,3 +39,19 @@ Value value_create_from_double(double number) {
     output.value.number = number;
     return output;
 }
+
+double value_get_number(const Value* value) {
+    assert(value != NULL);
+    if(value->type == ValueType_Number) {
+        return value->value.number;
+    }
+    else {
+        fprintf(stderr,
+            "Expected value type to be ValueType_Number.\n"
+            "Got: (ValueType_Number) %d\n"
+            ,
+            value->type
+        );
+        PANIC();
+    }
+}
