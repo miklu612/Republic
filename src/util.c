@@ -2,6 +2,7 @@
 
 #include<string.h>
 #include<stdlib.h>
+#include<stdint.h>
 
 
 bool is_letter(char character) {
@@ -30,6 +31,7 @@ char* clone_string(const char* text_to_copy) {
     return output;
 }
 
+#include<stdio.h>
 void generic_push(void** ptr, size_t* ptr_count, size_t element_size, void* element) {
 
     assert(ptr != NULL);
@@ -42,11 +44,15 @@ void generic_push(void** ptr, size_t* ptr_count, size_t element_size, void* elem
         *ptr_count = 0;
     }
     else {
-        *ptr = realloc(*ptr, element_size * *ptr_count);
+        *ptr = realloc(*ptr, element_size * ((*ptr_count)+1));
     }
 
-
-    memcpy(ptr[*ptr_count], element, element_size);
+    // We have to recast the inner ptr to a uint8_t pointer, since the C
+    // standard forbids pointer arithmetics on void pointer. Why uint8_t
+    // pointer? Because it has a size of 1. Or it should.
+    assert(sizeof(uint8_t) == 1);
+    uint8_t* inner_ptr = *ptr;
+    memcpy(((inner_ptr)+(element_size * (*ptr_count))), element, element_size);
     *ptr_count += 1;
 
 }
