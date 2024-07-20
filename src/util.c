@@ -31,7 +31,6 @@ char* clone_string(const char* text_to_copy) {
     return output;
 }
 
-#include<stdio.h>
 void generic_push(void** ptr, size_t* ptr_count, size_t element_size, void* element) {
 
     assert(ptr != NULL);
