@@ -79,11 +79,7 @@ typedef struct ShallowASTNode {
         } AccessObjectMember;
 
         struct {
-            // TODO: Change this into ShallowASTNodeArray
-            struct {
-                struct ShallowASTNode* nodes;
-                size_t count;
-            } arguments;
+            struct ShallowASTNodeArray* arguments;
         } Call;
 
         struct {
@@ -166,7 +162,7 @@ ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode*);
 // Call related functions
 ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode*, size_t index);
 size_t shallow_ast_node_call_get_argument_count(ShallowASTNode*);
-void shallow_ast_node_call_add_argument(ShallowASTNode* node, const ShallowASTNode* argument);
+void shallow_ast_node_call_add_argument(ShallowASTNode* node, ShallowASTNode* argument);
 
 // Access Object Member related functions
 ShallowASTNode shallow_ast_node_get_access_object_member(const LexerTokenArray* array, size_t* i);

@@ -182,19 +182,17 @@ void runtime_scope_function_call(RuntimeScope* scope, ShallowASTNode* call, Shal
             }
             else if(strcmp(path, "assert") == 0) {
 
-                fprintf(stderr, "%d\n", call->data.Call.arguments.nodes[0].type);
-                fprintf(stderr, "%ld\n", call->data.Call.arguments.count);
-                assert(call->data.Call.arguments.count == 3);
-                assert(call->data.Call.arguments.nodes[1].type == ShallowASTNodeType_DoubleEquals);
+                assert(call->data.Call.arguments->count == 3);
+                assert(call->data.Call.arguments->nodes[1].type == ShallowASTNodeType_DoubleEquals);
 
                 Value v_left = runtime_scope_get_value(
                     scope, 
-                    &call->data.Call.arguments.nodes[0]
+                    &call->data.Call.arguments->nodes[0]
                 );
 
                 Value v_right = runtime_scope_get_value(
                     scope, 
-                    &call->data.Call.arguments.nodes[2]
+                    &call->data.Call.arguments->nodes[2]
                 );
 
                 const double left = value_get_number(&v_left);

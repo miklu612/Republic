@@ -86,14 +86,9 @@ void shallow_ast_node_free(ShallowASTNode* node) {
         free(node->data.AccessObjectMember.object_name);
     }
     else if(node->type == ShallowASTNodeType_Call) {
-        ShallowASTNode* nodes = node->data.Call.arguments.nodes;
-        size_t count = node->data.Call.arguments.count;
-        if(nodes != NULL) {
-            for(size_t i = 0 ; i < count ; i++) {
-                shallow_ast_node_free(&nodes[i]);
-            }
-            free(nodes);
-        }
+        assert(node->data.Call.arguments != NULL);
+        shallow_ast_node_array_free(node->data.Call.arguments);
+        free(node->data.Call.arguments);
     }
     else if(node->type == ShallowASTNodeType_StringConstant) {
         free(node->data.StringConstant.string);
@@ -182,18 +177,10 @@ void shallow_ast_node_access_object_member_add_to_path(ShallowASTNode* node, con
 }
 
 // Takes ownership
-void shallow_ast_node_call_add_argument(ShallowASTNode* node, const ShallowASTNode* argument) {
-    ShallowASTNode** nodes = &node->data.Call.arguments.nodes;
-    size_t* count = &node->data.Call.arguments.count;
-    if(*nodes == NULL) {
-        *nodes = malloc(sizeof(ShallowASTNode));
-        *count = 0;
-    }
-    else {
-        *nodes = realloc(*nodes, (*count+1) * sizeof(ShallowASTNode));
-    }
-    (*nodes)[*count] = *argument;
-    *count += 1;
+void shallow_ast_node_call_add_argument(ShallowASTNode* node, ShallowASTNode* argument) {
+    assert(node != NULL);
+    assert(argument != NULL);
+    shallow_ast_node_array_push(node->data.Call.arguments, argument);
 }
 
 void shallow_ast_node_access_object_member_set_parent(ShallowASTNode* node, const char* parent) {
@@ -267,6 +254,7 @@ void shallow_ast_node_access_identifier_set_name(ShallowASTNode* node, const cha
 ShallowASTNode parser_shallow_get_call(LexerTokenArray* array, size_t* index) {
     ShallowASTNode output = { 0 };
     shallow_ast_node_set_type(&output, ShallowASTNodeType_Call);
+    output.data.Call.arguments = calloc(1, sizeof(ShallowASTNodeArray));
 
     for(size_t i = *index+1 ; i < array->count ; i++) {
         *index = i;
@@ -1039,12 +1027,10 @@ ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode* node) {
         ShallowASTNode* output = malloc(sizeof(ShallowASTNode));
         memset(output, 0, sizeof(ShallowASTNode));
         output->type = ShallowASTNodeType_Call;
-        for(size_t i = 0 ; i < node->data.Call.arguments.count ; i++) {
-            // It just works
-            ShallowASTNode* child = shallow_ast_node_deep_copy(&node->data.Call.arguments.nodes[i]);
-            shallow_ast_node_call_add_argument(output, child);
-            free(child);
-        }
+        output->data.Call.arguments = calloc(1, sizeof(ShallowASTNodeArray));
+        *output->data.Call.arguments = shallow_ast_node_array_clone(
+            node->data.Call.arguments
+        );
         return output;
     }
     else if(node->type == ShallowASTNodeType_StringConstant) {
@@ -1206,13 +1192,13 @@ ShallowASTNode* shallow_ast_node_deep_copy(const ShallowASTNode* node) {
 
 ShallowASTNode* shallow_ast_node_call_get_argument(ShallowASTNode* node, size_t index) {
     assert(node->type == ShallowASTNodeType_Call);
-    assert(node->data.Call.arguments.count > index);
-    return &node->data.Call.arguments.nodes[index];
+    assert(node->data.Call.arguments->count > index);
+    return &node->data.Call.arguments->nodes[index];
 }
 
 size_t shallow_ast_node_call_get_argument_count(ShallowASTNode* node) {
     assert(node->type == ShallowASTNodeType_Call);
-    return node->data.Call.arguments.count;
+    return node->data.Call.arguments->count;
 }
 
 
